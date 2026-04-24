@@ -1,0 +1,38 @@
+{
+	"name": "easy-obookshelf",
+	"version": "1.0.0",
+	"description": "ISBN から書籍メタデータを取得してノートを作成し、本棚として管理する Obsidian プラグイン",
+	"private": true,
+	"main": "main.js",
+	"packageManager": "pnpm@9.15.0",
+	"engines": {
+		"node": ">=24"
+	},
+	"scripts": {
+		"dev": "node esbuild.config.mjs",
+		"build": "tsc --noEmit && node esbuild.config.mjs production",
+		"typecheck": "tsc --noEmit",
+		"lint": "biome lint ./src",
+		"format": "biome format --write ./src",
+		"check": "biome check --write ./src",
+		"check:ci": "biome check ./src"
+	},
+	"keywords": [
+		"obsidian",
+		"obsidian-plugin",
+		"books",
+		"bookshelf",
+		"isbn"
+	],
+	"author": "cocoa",
+	"license": "MIT",
+	"devDependencies": {
+		"@biomejs/biome": "^1.9.4",
+		"@types/node": "^22.10.0",
+		"builtin-modules": "^4.0.0",
+		"esbuild": "^0.24.0",
+		"obsidian": "^1.7.2",
+		"tslib": "^2.8.1",
+		"typescript": "^5.7.2"
+	}
+}
