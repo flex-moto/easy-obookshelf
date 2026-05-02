@@ -1,6 +1,6 @@
 {
 	"name": "easy-obookshelf",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "ISBN から書籍メタデータを取得してノートを作成し、本棚として管理する Obsidian プラグイン",
 	"private": true,
 	"main": "main.js",
