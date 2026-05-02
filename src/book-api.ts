@@ -132,6 +132,52 @@ async function fetchFromOpenLibrary(isbn: string): Promise<BookMetadata | null> 
 	}
 }
 
+interface OpenBDSummary {
+	isbn?: string;
+	title?: string;
+	volume?: string;
+	series?: string;
+	publisher?: string;
+	pubdate?: string;
+	cover?: string;
+	author?: string;
+}
+
+interface OpenBDRecord {
+	summary?: OpenBDSummary;
+}
+
+async function fetchFromOpenBD(isbn: string): Promise<BookMetadata | null> {
+	const url = `https://api.openbd.jp/v1/get?isbn=${isbn}`;
+	try {
+		const response = await requestUrl({ url });
+		if (response.status !== 200) return null;
+		const data = response.json as (OpenBDRecord | null)[] | null;
+		if (!Array.isArray(data) || data.length === 0) return null;
+		const record = data[0];
+		const summary = record?.summary;
+		if (!summary) return null;
+		const title = summary.title || "";
+		if (!title) return null;
+		const author = summary.author || "";
+		const publisher = summary.publisher || "";
+		const publishDate = summary.pubdate || "";
+		const coverUrl = summary.cover || "";
+		return {
+			title,
+			author,
+			publisher,
+			isbn,
+			publishDate,
+			pages: 0,
+			coverUrl: coverUrl.replace(/^http:/, "https:"),
+			language: "ja",
+		};
+	} catch (_e) {
+		return null;
+	}
+}
+
 function buildCoverUrl(isbn: string, metadata: BookMetadata): string {
 	if (metadata.coverUrl) return metadata.coverUrl;
 	return `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
@@ -154,6 +200,7 @@ export async function fetchByISBN(isbn: string, googleBooksApiKey?: string): Pro
 	}
 	if (!metadata.coverUrl) {
 		const forCover =
+			(isJapaneseIsbn(normalized) ? await fetchFromOpenBD(normalized) : null) ??
 			(await fetchFromGoogleBooks(normalized, googleBooksApiKey)) ??
 			(await fetchFromOpenLibrary(normalized));
 		if (forCover?.coverUrl) {
