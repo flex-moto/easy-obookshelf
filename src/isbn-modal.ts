@@ -1,7 +1,7 @@
-import { type App, Modal, Notice, Setting } from "obsidian";
+import { type App, Modal, Notice, Setting, requestUrl } from "obsidian";
 import { fetchByISBN } from "./book-api";
 import { EditBookModal } from "./edit-modal";
-import { saveCoverFromFileObject } from "./image-cache";
+import { downloadCover, saveCoverFromFileObject } from "./image-cache";
 import { createBookNote } from "./note-creator";
 import type { BookMetadata, BookNoteFrontmatter, BookshelfSettings } from "./types";
 
@@ -83,11 +83,16 @@ export class ISBNModal extends Modal {
 		setTimeout(() => this.inputEl?.focus(), 50);
 	}
 
-	private showManualForm(isbn: string): void {
+	private showManualForm(
+		isbn: string,
+		prefill?: { metadata: BookMetadata; autoCoverUrl?: string },
+	): void {
 		const { contentEl } = this;
 		contentEl.empty();
 		contentEl.addClass("bookshelf-modal");
-		contentEl.createEl("h2", { text: "書籍情報を手動で入力" });
+		contentEl.createEl("h2", {
+			text: prefill ? "書籍情報を確認" : "書籍情報を手動で入力",
+		});
 
 		let coverFile: File | null = null;
 
@@ -104,17 +109,39 @@ export class ISBNModal extends Modal {
 		fileInput.style.display = "none";
 		contentEl.appendChild(fileInput);
 
-		const setPreviewFile = (file: File) => {
-			coverFile = file;
-			const objectUrl = URL.createObjectURL(file);
+		const showPreviewSrc = (src: string) => {
 			if (previewImg) {
-				previewImg.src = objectUrl;
+				previewImg.src = src;
 			} else {
 				dropzoneText.style.display = "none";
 				previewImg = dropzoneEl.createEl("img");
-				previewImg.src = objectUrl;
+				previewImg.src = src;
 			}
 		};
+
+		const setPreviewFile = (file: File) => {
+			coverFile = file;
+			const objectUrl = URL.createObjectURL(file);
+			showPreviewSrc(objectUrl);
+		};
+
+		if (prefill?.autoCoverUrl) {
+			(async () => {
+				try {
+					const response = await requestUrl({ url: prefill.autoCoverUrl as string });
+					if (response.status !== 200) return;
+					const contentType =
+						response.headers?.["content-type"]?.split(";")[0].trim() || "image/jpeg";
+					const blob = new Blob([response.arrayBuffer], { type: contentType });
+					const bitmap = await createImageBitmap(blob);
+					if (bitmap.width <= 1 || bitmap.height <= 1) return;
+					const objectUrl = URL.createObjectURL(blob);
+					showPreviewSrc(objectUrl);
+				} catch (err) {
+					console.warn("自動取得した表紙のプレビューに失敗:", err);
+				}
+			})();
+		}
 
 		const pasteHandler = (e: ClipboardEvent) => {
 			const items = e.clipboardData?.items;
@@ -155,57 +182,62 @@ export class ISBNModal extends Modal {
 
 		const fieldsEl = formEl.createDiv("form-fields");
 
-		let titleValue = "";
+		let titleValue = prefill?.metadata.title ?? "";
 		new Setting(fieldsEl).setName("タイトル *").addText((text) => {
 			text.setPlaceholder("書籍タイトル");
 			text.inputEl.style.width = "100%";
+			text.setValue(titleValue);
 			text.onChange((v) => {
 				titleValue = v;
 			});
 		});
 
-		let authorValue = "";
+		let authorValue = prefill?.metadata.author ?? "";
 		new Setting(fieldsEl).setName("著者").addText((text) => {
 			text.setPlaceholder("著者名");
 			text.inputEl.style.width = "100%";
+			text.setValue(authorValue);
 			text.onChange((v) => {
 				authorValue = v;
 			});
 		});
 
-		let publisherValue = "";
+		let publisherValue = prefill?.metadata.publisher ?? "";
 		new Setting(fieldsEl).setName("出版社").addText((text) => {
 			text.setPlaceholder("出版社名");
 			text.inputEl.style.width = "100%";
+			text.setValue(publisherValue);
 			text.onChange((v) => {
 				publisherValue = v;
 			});
 		});
 
-		let publishDateValue = "";
+		let publishDateValue = prefill?.metadata.publishDate ?? "";
 		new Setting(fieldsEl).setName("出版日").addText((text) => {
 			text.setPlaceholder("例: 2023-01-01");
 			text.inputEl.style.width = "100%";
+			text.setValue(publishDateValue);
 			text.onChange((v) => {
 				publishDateValue = v;
 			});
 		});
 
-		let pagesValue = "";
+		let pagesValue = prefill?.metadata.pages ? String(prefill.metadata.pages) : "";
 		new Setting(fieldsEl).setName("ページ数").addText((text) => {
 			text.setPlaceholder("例: 300");
 			text.inputEl.style.width = "100%";
+			text.setValue(pagesValue);
 			text.onChange((v) => {
 				pagesValue = v;
 			});
 		});
 
-		let languageValue = "ja";
+		let languageValue = prefill?.metadata.language ?? "ja";
 		new Setting(fieldsEl).setName("言語").addDropdown((dd) => {
 			dd.addOption("ja", "日本語");
 			dd.addOption("en", "English");
 			dd.addOption("other", "その他");
-			dd.setValue("ja");
+			dd.setValue(languageValue);
 			dd.onChange((v) => {
 				languageValue = v;
 			});
@@ -236,7 +268,7 @@ export class ISBNModal extends Modal {
 							isbn: normalizedIsbn,
 							publishDate: publishDateValue.trim(),
 							pages: Number.parseInt(pagesValue) || 0,
-							coverUrl: "",
+							coverUrl: prefill?.autoCoverUrl ?? "",
 							language: languageValue,
 						};
 						let coverPath = "";
@@ -251,11 +283,47 @@ export class ISBNModal extends Modal {
 							} catch (err) {
 								console.warn("表紙画像の保存に失敗しました:", err);
 							}
+						} else if (prefill?.autoCoverUrl && normalizedIsbn) {
+							try {
+								coverPath = await downloadCover(
+									this.app,
+									normalizedIsbn,
+									prefill.autoCoverUrl,
+									this.settings.coversFolder,
+								);
+							} catch (err) {
+								console.warn("表紙画像のダウンロードに失敗しました:", err);
+							}
 						}
 						try {
-							await createBookNote(this.app, metadata, this.settings, coverPath || undefined);
+							const file = await createBookNote(
+								this.app,
+								metadata,
+								this.settings,
+								coverPath || undefined,
+							);
 							document.removeEventListener("paste", pasteHandler);
 							this.close();
+							if (prefill) {
+								const fm: BookNoteFrontmatter = {
+									title: metadata.title,
+									author: metadata.author,
+									publisher: metadata.publisher,
+									isbn: metadata.isbn,
+									publishDate: metadata.publishDate,
+									pages: metadata.pages,
+									cover: coverPath,
+									status: "to-read",
+									progress: 0,
+									startDate: "",
+									endDate: "",
+									rating: 0,
+									language: metadata.language,
+									tags: ["book"],
+								};
+								new EditBookModal(this.app, file, fm, this.settings).open();
+							}
+							return;
 						} catch (err) {
 							const message = err instanceof Error ? err.message : String(err);
 							statusEl.empty();
@@ -286,29 +354,7 @@ export class ISBNModal extends Modal {
 		this.setLoading(true);
 		try {
 			const metadata = await fetchByISBN(isbn, this.settings.googleBooksApiKey || undefined);
-			this.showPreview(metadata.title, metadata.author);
-			const file = await createBookNote(this.app, metadata, this.settings);
-			this.close();
-			const cachedFm = this.app.metadataCache.getFileCache(file)?.frontmatter as
-				| BookNoteFrontmatter
-				| undefined;
-			const fm: BookNoteFrontmatter = cachedFm ?? {
-				title: metadata.title,
-				author: metadata.author,
-				publisher: metadata.publisher,
-				isbn: metadata.isbn,
-				publishDate: metadata.publishDate,
-				pages: metadata.pages,
-				cover: "",
-				status: "to-read",
-				progress: 0,
-				startDate: "",
-				endDate: "",
-				rating: 0,
-				language: metadata.language,
-				tags: ["book"],
-			};
-			new EditBookModal(this.app, file, fm, this.settings).open();
+			this.showManualForm(isbn, { metadata, autoCoverUrl: metadata.coverUrl });
 		} catch (_e) {
 			this.showManualForm(isbn);
 			new Notice("書籍情報が見つかりませんでした。手動で入力してください。");
@@ -335,13 +381,5 @@ export class ISBNModal extends Modal {
 			cls: "bookshelf-error",
 			text: `エラー: ${message}`,
 		});
-	}
-
-	private showPreview(title: string, author: string): void {
-		if (!this.statusEl) return;
-		this.statusEl.empty();
-		const preview = this.statusEl.createDiv("bookshelf-result-preview");
-		preview.createEl("h3", { text: title });
-		preview.createEl("p", { text: author });
 	}
 }

@@ -26,24 +26,6 @@
 	margin-top: 8px;
 }
 
-.bookshelf-modal .bookshelf-result-preview {
-	background: var(--background-secondary);
-	border-radius: 6px;
-	padding: 12px;
-	margin-top: 12px;
-}
-
-.bookshelf-modal .bookshelf-result-preview h3 {
-	margin: 0 0 4px 0;
-	font-size: 15px;
-}
-
-.bookshelf-modal .bookshelf-result-preview p {
-	margin: 2px 0;
-	font-size: 13px;
-	color: var(--text-muted);
-}
-
 /* 手動入力フォーム */
 .bookshelf-manual-form {
 	display: flex;
