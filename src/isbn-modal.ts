@@ -6,11 +6,15 @@ import { createBookNote } from "./note-creator";
 import type { BookMetadata, BookNoteFrontmatter, BookshelfSettings } from "./types";
 
 function normalizeIsbn(input: string): string {
-	const raw = input.replace(/[\s\-]/g, "");
-	if (raw.length === 10 && /^\d{9}[\dXx]$/.test(raw)) {
-		return convertIsbn10To13(raw);
+	const halfWidth = input
+		.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0))
+		.replace(/Ｘ/g, "X")
+		.replace(/ｘ/g, "x");
+	const stripped = halfWidth.replace(/\s|​|‌|‍|﻿|-/g, "");
+	if (stripped.length === 10 && /^\d{9}[\dXx]$/.test(stripped)) {
+		return convertIsbn10To13(stripped);
 	}
-	return raw;
+	return stripped;
 }
 
 function convertIsbn10To13(isbn10: string): string {
@@ -313,8 +317,8 @@ export class ISBNModal extends Modal {
 									publishDate: metadata.publishDate,
 									pages: metadata.pages,
 									cover: coverPath,
-									status: "to-read",
-									progress: 0,
+									status: this.settings.defaultStatus,
+									progress: this.settings.defaultProgress,
 									startDate: "",
 									endDate: "",
 									rating: 0,
@@ -347,7 +351,7 @@ export class ISBNModal extends Modal {
 		if (this.isLoading) return;
 		const raw = this.inputEl?.value ?? "";
 		const isbn = normalizeIsbn(raw);
-		if (!isValidIsbn(isbn.replace(/[\s\-]/g, ""))) {
+		if (!isValidIsbn(isbn)) {
 			this.showError("有効な ISBN を入力してください（10桁または13桁の数字）。");
 			return;
 		}

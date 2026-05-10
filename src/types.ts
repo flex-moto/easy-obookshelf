@@ -7,6 +7,8 @@ export interface BookshelfSettings {
 	coversFolder: string;
 	googleBooksApiKey: string;
 	duplicateIsbnAction: DuplicateIsbnAction;
+	defaultStatus: BookStatus;
+	defaultProgress: number;
 }
 
 export const DEFAULT_SETTINGS: BookshelfSettings = {
@@ -14,6 +16,8 @@ export const DEFAULT_SETTINGS: BookshelfSettings = {
 	coversFolder: "Books/covers",
 	googleBooksApiKey: "",
 	duplicateIsbnAction: "open",
+	defaultStatus: "to-read",
+	defaultProgress: 0,
 };
 
 export interface BookMetadata {

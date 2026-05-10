@@ -6,7 +6,7 @@ function sanitizeFileName(name: string): string {
 	return name.replace(/[\\/:*?"<>|]/g, "_").trim();
 }
 
-function buildFrontmatter(metadata: BookMetadata, coverPath: string) {
+function buildFrontmatter(metadata: BookMetadata, coverPath: string, settings: BookshelfSettings) {
 	return {
 		title: metadata.title,
 		author: metadata.author,
@@ -15,8 +15,8 @@ function buildFrontmatter(metadata: BookMetadata, coverPath: string) {
 		publishDate: metadata.publishDate,
 		pages: metadata.pages,
 		cover: coverPath,
-		status: "to-read",
-		progress: 0,
+		status: settings.defaultStatus,
+		progress: settings.defaultProgress,
 		startDate: "",
 		endDate: "",
 		rating: 0,
@@ -68,7 +68,7 @@ export async function createBookNote(
 		fileName = `${baseName}-${metadata.isbn}.md`;
 		filePath = `${booksFolder}/${fileName}`;
 	}
-	const frontmatter = buildFrontmatter(metadata, coverPath);
+	const frontmatter = buildFrontmatter(metadata, coverPath, settings);
 	const frontmatterStr = Object.entries(frontmatter)
 		.map(([k, v]) => {
 			if (Array.isArray(v)) return `${k}:\n${v.map((i) => `  - ${i}`).join("\n")}`;
@@ -95,7 +95,7 @@ async function overwriteNote(
 		prebuiltCoverPath !== undefined
 			? prebuiltCoverPath
 			: await downloadCoverSafe(app, metadata, coversFolder, settings);
-	const frontmatter = buildFrontmatter(metadata, coverPath);
+	const frontmatter = buildFrontmatter(metadata, coverPath, settings);
 	await app.fileManager.processFrontMatter(file, (fm) => {
 		Object.assign(fm, frontmatter);
 	});

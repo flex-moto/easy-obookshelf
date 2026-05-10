@@ -123,59 +123,59 @@ export default class BookshelfPlugin extends Plugin {
 		if (!(await this.app.vault.adapter.exists(this.settings.booksFolder))) {
 			await this.app.vault.createFolder(this.settings.booksFolder);
 		}
-		const basesContent = JSON.stringify(
-			{
-				filters: {
-					conditions: [{ field: "tags", operator: "contains", value: "book" }],
-				},
-				views: [
-					{
-						type: "cards",
-						name: "本棚",
-						coverField: "cover",
-						fields: ["title", "author", "status", "progress", "rating"],
-					},
-					{
-						type: "cards",
-						name: "読みたい",
-						coverField: "cover",
-						fields: ["title", "author", "rating"],
-						filters: {
-							conditions: [
-								{ field: "tags", operator: "contains", value: "book" },
-								{ field: "status", operator: "equals", value: "to-read" },
-							],
-						},
-					},
-					{
-						type: "cards",
-						name: "読書中",
-						coverField: "cover",
-						fields: ["title", "author", "progress"],
-						filters: {
-							conditions: [
-								{ field: "tags", operator: "contains", value: "book" },
-								{ field: "status", operator: "equals", value: "reading" },
-							],
-						},
-					},
-					{
-						type: "cards",
-						name: "読了",
-						coverField: "cover",
-						fields: ["title", "author", "rating", "endDate"],
-						filters: {
-							conditions: [
-								{ field: "tags", operator: "contains", value: "book" },
-								{ field: "status", operator: "equals", value: "completed" },
-							],
-						},
-					},
-				],
-			},
-			null,
-			2,
-		);
+		const basesContent = `filters:
+  and:
+    - note.tags.contains("book")
+views:
+  - type: cards
+    name: 本棚
+    image: note.cover
+    imageFit: contain
+    cardSize: 180
+    order:
+      - title
+      - author
+      - status
+      - progress
+      - rating
+  - type: cards
+    name: 読みたい
+    filters:
+      and:
+        - note.status == "to-read"
+    image: note.cover
+    imageFit: contain
+    cardSize: 180
+    order:
+      - title
+      - author
+      - rating
+  - type: cards
+    name: 読書中
+    filters:
+      and:
+        - note.status == "reading"
+    image: note.cover
+    imageFit: contain
+    cardSize: 180
+    order:
+      - title
+      - author
+      - progress
+  - type: cards
+    name: 読了
+    filters:
+      and:
+        - note.status == "completed"
+    image: note.cover
+    imageFit: contain
+    cardSize: 180
+    order:
+      - title
+      - author
+      - rating
+      - endDate
+`;
 		await this.app.vault.create(basesPath, basesContent);
 	}
 

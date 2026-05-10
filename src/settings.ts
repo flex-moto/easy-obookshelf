@@ -1,6 +1,6 @@
 import { type App, PluginSettingTab, Setting } from "obsidian";
 import type BookshelfPlugin from "./main";
-import type { DuplicateIsbnAction } from "./types";
+import type { BookStatus, DuplicateIsbnAction } from "./types";
 
 export class BookshelfSettingTab extends PluginSettingTab {
 	plugin: BookshelfPlugin;
@@ -65,6 +65,36 @@ export class BookshelfSettingTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.duplicateIsbnAction)
 					.onChange(async (value) => {
 						this.plugin.settings.duplicateIsbnAction = value as DuplicateIsbnAction;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName("デフォルトステータス")
+			.setDesc("新規書籍ノート作成時の初期ステータス")
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption("to-read", "読みたい")
+					.addOption("reading", "読書中")
+					.addOption("completed", "読了")
+					.addOption("abandoned", "中断")
+					.setValue(this.plugin.settings.defaultStatus)
+					.onChange(async (value) => {
+						this.plugin.settings.defaultStatus = value as BookStatus;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName("デフォルト進捗 (%)")
+			.setDesc("新規書籍ノート作成時の初期進捗")
+			.addSlider((slider) =>
+				slider
+					.setLimits(0, 100, 1)
+					.setValue(this.plugin.settings.defaultProgress)
+					.setDynamicTooltip()
+					.onChange(async (value) => {
+						this.plugin.settings.defaultProgress = value;
 						await this.plugin.saveSettings();
 					}),
 			);
