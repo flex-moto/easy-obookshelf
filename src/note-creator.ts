@@ -69,15 +69,11 @@ export async function createBookNote(
 		filePath = `${booksFolder}/${fileName}`;
 	}
 	const frontmatter = buildFrontmatter(metadata, coverPath, settings);
-	const frontmatterStr = Object.entries(frontmatter)
-		.map(([k, v]) => {
-			if (Array.isArray(v)) return `${k}:\n${v.map((i) => `  - ${i}`).join("\n")}`;
-			if (typeof v === "string") return `${k}: "${v}"`;
-			return `${k}: ${v}`;
-		})
-		.join("\n");
-	const content = `---\n${frontmatterStr}\n---\n${buildNoteBody()}`;
+	const content = `---\n---\n${buildNoteBody()}`;
 	const file = await app.vault.create(filePath, content);
+	await app.fileManager.processFrontMatter(file, (fm) => {
+		Object.assign(fm, frontmatter);
+	});
 	await app.workspace.getLeaf(false).openFile(file);
 	new Notice(`書籍ノートを作成しました: ${file.name}`);
 	return file;
