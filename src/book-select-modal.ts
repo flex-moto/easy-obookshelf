@@ -15,7 +15,9 @@ export class BookSelectModal extends FuzzySuggestModal<TFile> {
 		const isBookNote = (file: TFile): boolean => {
 			const cache = this.app.metadataCache.getFileCache(file);
 			const fm = cache?.frontmatter;
-			return !!fm && (fm.isbn !== undefined || (Array.isArray(fm.tags) && fm.tags.includes("book")));
+			return (
+				!!fm && (fm.isbn !== undefined || (Array.isArray(fm.tags) && fm.tags.includes("book")))
+			);
 		};
 		const items = this.app.vault.getMarkdownFiles().filter(isBookNote);
 		const active = this.app.workspace.getActiveFile();
