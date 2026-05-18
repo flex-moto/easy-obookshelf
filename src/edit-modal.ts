@@ -2,6 +2,28 @@ import { type App, Modal, Notice, Setting, TFile } from "obsidian";
 import { saveCoverFromFileObject } from "./image-cache";
 import type { BookNoteFrontmatter, BookshelfSettings } from "./types";
 
+function normalizeDate(input: string): string {
+	const trimmed = input.trim();
+	if (!trimmed) return input;
+	const parts = trimmed.split(/[-/]/);
+	if (parts.length !== 3) return input;
+	const [y, m, d] = parts;
+	if (!/^\d+$/.test(y) || !/^\d+$/.test(m) || !/^\d+$/.test(d)) return input;
+	let year = y;
+	if (year.length === 2) year = `20${year}`;
+	else if (year.length !== 4) return input;
+	if (m.length > 2 || d.length > 2) return input;
+	return `${year}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+}
+
+function todayYmd(): string {
+	const d = new Date();
+	const y = d.getFullYear();
+	const m = String(d.getMonth() + 1).padStart(2, "0");
+	const day = String(d.getDate()).padStart(2, "0");
+	return `${y}-${m}-${day}`;
+}
+
 export class EditBookModal extends Modal {
 	private file: TFile;
 	private fm: BookNoteFrontmatter;
@@ -194,12 +216,42 @@ export class EditBookModal extends Modal {
 			text.onChange((v) => {
 				startDateValue = v;
 			});
+			text.inputEl.addEventListener("blur", () => {
+				const normalized = normalizeDate(text.inputEl.value);
+				if (normalized !== text.inputEl.value) {
+					text.inputEl.value = normalized;
+				}
+				startDateValue = text.inputEl.value;
+			});
+			text.inputEl.addEventListener("keydown", (e) => {
+				if (e.ctrlKey && e.key === ";") {
+					e.preventDefault();
+					const ymd = todayYmd();
+					text.inputEl.value = ymd;
+					startDateValue = ymd;
+				}
+			});
 		});
 		new Setting(contentEl).setName("終了日").addText((text) => {
 			text.setPlaceholder("例: 2024-03-31");
 			text.setValue(endDateValue);
 			text.onChange((v) => {
 				endDateValue = v;
+			});
+			text.inputEl.addEventListener("blur", () => {
+				const normalized = normalizeDate(text.inputEl.value);
+				if (normalized !== text.inputEl.value) {
+					text.inputEl.value = normalized;
+				}
+				endDateValue = text.inputEl.value;
+			});
+			text.inputEl.addEventListener("keydown", (e) => {
+				if (e.ctrlKey && e.key === ";") {
+					e.preventDefault();
+					const ymd = todayYmd();
+					text.inputEl.value = ymd;
+					endDateValue = ymd;
+				}
 			});
 		});
 

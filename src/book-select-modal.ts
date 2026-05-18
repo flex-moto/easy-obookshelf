@@ -12,11 +12,18 @@ export class BookSelectModal extends FuzzySuggestModal<TFile> {
 	}
 
 	getItems(): TFile[] {
-		return this.app.vault.getMarkdownFiles().filter((file) => {
+		const isBookNote = (file: TFile): boolean => {
 			const cache = this.app.metadataCache.getFileCache(file);
 			const fm = cache?.frontmatter;
-			return fm && (fm.isbn !== undefined || (Array.isArray(fm.tags) && fm.tags.includes("book")));
-		});
+			return !!fm && (fm.isbn !== undefined || (Array.isArray(fm.tags) && fm.tags.includes("book")));
+		};
+		const items = this.app.vault.getMarkdownFiles().filter(isBookNote);
+		const active = this.app.workspace.getActiveFile();
+		if (active && isBookNote(active)) {
+			const rest = items.filter((f) => f.path !== active.path);
+			return [active, ...rest];
+		}
+		return items;
 	}
 
 	getItemText(file: TFile): string {

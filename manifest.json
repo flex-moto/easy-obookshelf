@@ -1,7 +1,7 @@
 {
   "id": "ob-book",
   "name": "Books",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "minAppVersion": "1.4.0",
   "description": "ISBNから書籍メタデータを取得してノートを作成し、本棚として管理するプラグイン",
   "author": "cocoa",
