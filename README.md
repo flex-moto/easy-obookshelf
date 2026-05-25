@@ -45,6 +45,20 @@ Add this repository through the [BRAT](https://github.com/TfTHacker/obsidian42-b
 
 - Desktop only (uses Electron file dialog and local filesystem for cover caching).
 
+## Network use
+
+This plugin makes HTTPS requests to the following public services to fetch book metadata and cover images by ISBN. No personal data is sent — only the ISBN you enter.
+
+- **NDL (National Diet Library of Japan)** — `https://ndlsearch.ndl.go.jp` — primary metadata source for Japanese books.
+- **Google Books API** — `https://www.googleapis.com/books/v1` — fallback metadata source.
+- **Open Library** — `https://openlibrary.org` and `https://covers.openlibrary.org` — final fallback for metadata and cover images.
+
+All requests are issued through Obsidian's `requestUrl` API and are only triggered by an explicit user action (entering an ISBN). No background or telemetry traffic is generated.
+
+## File system access
+
+On desktop, the **"Set cover image manually"** command opens an Electron file picker so you can choose an image from anywhere on your local disk. The selected file is read once via Node `fs`, converted to WebP, and saved into your vault's configured covers folder. The plugin does not retain any path outside your vault.
+
 ## Development
 
 ### Prerequisites
@@ -76,8 +90,8 @@ Push a Git tag (matching the `manifest.json` version, **no `v` prefix**) and the
 
 ```sh
 # After bumping manifest.json and package.json
-git tag 1.1.0
-git push origin 1.1.0
+git tag 1.1.1
+git push origin 1.1.1
 ```
 
 ## Migration from `ob-book` (v1.0.x)
