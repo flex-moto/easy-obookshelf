@@ -4,7 +4,7 @@
   "version": "1.1.1",
   "minAppVersion": "1.9.0",
   "description": "Manage your bookshelf from ISBN. Fetches book metadata from NDL, Google Books, and Open Library, then creates and organizes book notes.",
-  "author": "cocoa",
+  "author": "CocoaAI-IT",
   "authorUrl": "https://github.com/cocoaAI-IT",
   "isDesktopOnly": true
 }
