@@ -56,16 +56,15 @@ export class EditBookModal extends Modal {
 		const coverPath = String(this.fm.cover || "");
 		const coverTFile = coverPath ? this.app.vault.getAbstractFileByPath(coverPath) : null;
 		if (coverTFile instanceof TFile) {
-			dropzoneText.style.display = "none";
+			dropzoneText.hide();
 			previewImg = dropzoneEl.createEl("img");
 			previewImg.src = this.app.vault.getResourcePath(coverTFile);
 		}
 
-		const fileInput = document.createElement("input");
-		fileInput.type = "file";
-		fileInput.accept = ".jpg,.jpeg,.png,.webp";
-		fileInput.style.display = "none";
-		contentEl.appendChild(fileInput);
+		const fileInput = contentEl.createEl("input", {
+			attr: { type: "file", accept: ".jpg,.jpeg,.png,.webp" },
+		});
+		fileInput.hide();
 
 		const setPreviewFile = (file: File) => {
 			newCoverFile = file;
@@ -73,7 +72,7 @@ export class EditBookModal extends Modal {
 			if (previewImg) {
 				previewImg.src = objectUrl;
 			} else {
-				dropzoneText.style.display = "none";
+				dropzoneText.hide();
 				previewImg = dropzoneEl.createEl("img");
 				previewImg.src = objectUrl;
 			}
@@ -121,7 +120,7 @@ export class EditBookModal extends Modal {
 		let titleValue = String(this.fm.title || "");
 		new Setting(fieldsEl).setName("タイトル").addText((text) => {
 			text.setValue(titleValue);
-			text.inputEl.style.width = "100%";
+			text.inputEl.addClass("bookshelf-input-full");
 			text.onChange((v) => {
 				titleValue = v;
 			});
@@ -130,7 +129,7 @@ export class EditBookModal extends Modal {
 		let authorValue = String(this.fm.author || "");
 		new Setting(fieldsEl).setName("著者").addText((text) => {
 			text.setValue(authorValue);
-			text.inputEl.style.width = "100%";
+			text.inputEl.addClass("bookshelf-input-full");
 			text.onChange((v) => {
 				authorValue = v;
 			});
@@ -139,7 +138,7 @@ export class EditBookModal extends Modal {
 		let publisherValue = String(this.fm.publisher || "");
 		new Setting(fieldsEl).setName("出版社").addText((text) => {
 			text.setValue(publisherValue);
-			text.inputEl.style.width = "100%";
+			text.inputEl.addClass("bookshelf-input-full");
 			text.onChange((v) => {
 				publisherValue = v;
 			});
@@ -148,7 +147,7 @@ export class EditBookModal extends Modal {
 		let publishDateValue = String(this.fm.publishDate || "");
 		new Setting(fieldsEl).setName("出版日").addText((text) => {
 			text.setValue(publishDateValue);
-			text.inputEl.style.width = "100%";
+			text.inputEl.addClass("bookshelf-input-full");
 			text.onChange((v) => {
 				publishDateValue = v;
 			});
@@ -157,7 +156,7 @@ export class EditBookModal extends Modal {
 		let pagesValue = String(this.fm.pages || "");
 		new Setting(fieldsEl).setName("ページ数").addText((text) => {
 			text.setValue(pagesValue);
-			text.inputEl.style.width = "100%";
+			text.inputEl.addClass("bookshelf-input-full");
 			text.onChange((v) => {
 				pagesValue = v;
 			});

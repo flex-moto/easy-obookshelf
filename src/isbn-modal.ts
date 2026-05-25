@@ -61,7 +61,7 @@ export class ISBNModal extends Modal {
 			.setDesc("ISBN-10 または ISBN-13 を入力してください")
 			.addText((text) => {
 				text.setPlaceholder("例: 9784000000000");
-				text.inputEl.style.width = "220px";
+				text.inputEl.addClass("bookshelf-input-isbn");
 				this.inputEl = text.inputEl;
 				text.inputEl.addEventListener("keydown", (e) => {
 					if (e.key === "Enter") this.handleSearch();
@@ -107,17 +107,16 @@ export class ISBNModal extends Modal {
 			text: "表紙画像をドロップ / クリック / Ctrl+V で貼り付け",
 		});
 		let previewImg: HTMLImageElement | null = null;
-		const fileInput = document.createElement("input");
-		fileInput.type = "file";
-		fileInput.accept = ".jpg,.jpeg,.png,.webp";
-		fileInput.style.display = "none";
-		contentEl.appendChild(fileInput);
+		const fileInput = contentEl.createEl("input", {
+			attr: { type: "file", accept: ".jpg,.jpeg,.png,.webp" },
+		});
+		fileInput.hide();
 
 		const showPreviewSrc = (src: string) => {
 			if (previewImg) {
 				previewImg.src = src;
 			} else {
-				dropzoneText.style.display = "none";
+				dropzoneText.hide();
 				previewImg = dropzoneEl.createEl("img");
 				previewImg.src = src;
 			}
@@ -189,7 +188,7 @@ export class ISBNModal extends Modal {
 		let titleValue = prefill?.metadata.title ?? "";
 		new Setting(fieldsEl).setName("タイトル *").addText((text) => {
 			text.setPlaceholder("書籍タイトル");
-			text.inputEl.style.width = "100%";
+			text.inputEl.addClass("bookshelf-input-full");
 			text.setValue(titleValue);
 			text.onChange((v) => {
 				titleValue = v;
@@ -199,7 +198,7 @@ export class ISBNModal extends Modal {
 		let authorValue = prefill?.metadata.author ?? "";
 		new Setting(fieldsEl).setName("著者").addText((text) => {
 			text.setPlaceholder("著者名");
-			text.inputEl.style.width = "100%";
+			text.inputEl.addClass("bookshelf-input-full");
 			text.setValue(authorValue);
 			text.onChange((v) => {
 				authorValue = v;
@@ -209,7 +208,7 @@ export class ISBNModal extends Modal {
 		let publisherValue = prefill?.metadata.publisher ?? "";
 		new Setting(fieldsEl).setName("出版社").addText((text) => {
 			text.setPlaceholder("出版社名");
-			text.inputEl.style.width = "100%";
+			text.inputEl.addClass("bookshelf-input-full");
 			text.setValue(publisherValue);
 			text.onChange((v) => {
 				publisherValue = v;
@@ -219,7 +218,7 @@ export class ISBNModal extends Modal {
 		let publishDateValue = prefill?.metadata.publishDate ?? "";
 		new Setting(fieldsEl).setName("出版日").addText((text) => {
 			text.setPlaceholder("例: 2023-01-01");
-			text.inputEl.style.width = "100%";
+			text.inputEl.addClass("bookshelf-input-full");
 			text.setValue(publishDateValue);
 			text.onChange((v) => {
 				publishDateValue = v;
@@ -229,7 +228,7 @@ export class ISBNModal extends Modal {
 		let pagesValue = prefill?.metadata.pages ? String(prefill.metadata.pages) : "";
 		new Setting(fieldsEl).setName("ページ数").addText((text) => {
 			text.setPlaceholder("例: 300");
-			text.inputEl.style.width = "100%";
+			text.inputEl.addClass("bookshelf-input-full");
 			text.setValue(pagesValue);
 			text.onChange((v) => {
 				pagesValue = v;

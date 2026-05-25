@@ -1,7 +1,7 @@
 {
 	"name": "easy-obookshelf",
-	"version": "1.0.6",
-	"description": "ISBN から書籍メタデータを取得してノートを作成し、本棚として管理する Obsidian プラグイン",
+	"version": "1.1.0",
+	"description": "Manage your bookshelf from ISBN. Fetches book metadata from NDL, Google Books, and Open Library, then creates and organizes book notes.",
 	"private": true,
 	"main": "main.js",
 	"packageManager": "pnpm@9.15.0",

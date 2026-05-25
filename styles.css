@@ -75,3 +75,12 @@
 	height: 100%;
 	object-fit: cover;
 }
+
+/* 入力フィールド幅ヘルパー */
+.bookshelf-input-full {
+	width: 100%;
+}
+
+.bookshelf-input-isbn {
+	width: 220px;
+}

@@ -1,11 +1,11 @@
 {
-  "id": "ob-book",
-  "name": "Books",
-  "version": "1.0.6",
+  "id": "easy-obookshelf",
+  "name": "Easy Bookshelf",
+  "version": "1.1.0",
   "minAppVersion": "1.4.0",
-  "description": "ISBNから書籍メタデータを取得してノートを作成し、本棚として管理するプラグイン",
+  "description": "Manage your bookshelf from ISBN. Fetches book metadata from NDL, Google Books, and Open Library, then creates and organizes book notes.",
   "author": "cocoa",
-  "authorUrl": "",
+  "authorUrl": "https://github.com/cocoaAI-IT",
   "fundingUrl": "",
   "isDesktopOnly": true
 }
