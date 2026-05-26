@@ -59,6 +59,15 @@ All requests are issued through Obsidian's `requestUrl` API and are only trigger
 
 On desktop, the **"Set cover image manually"** command opens an Electron file picker so you can choose an image from anywhere on your local disk. The selected file is read once via Node `fs`, converted to WebP, and saved into your vault's configured covers folder. The plugin does not retain any path outside your vault.
 
+## Vault access
+
+The plugin enumerates Markdown files in the vault (`vault.getMarkdownFiles()`) for two reasons:
+
+1. **Duplicate detection** — when you add a book by ISBN, the plugin scans existing notes for the same `isbn` value in frontmatter to avoid creating duplicates.
+2. **Book picker** — the "Select and edit book note" command lists existing book notes filtered by the `kind: book` frontmatter.
+
+The plugin does not read note bodies; only frontmatter is inspected. No file content is sent over the network.
+
 ## Development
 
 ### Prerequisites
