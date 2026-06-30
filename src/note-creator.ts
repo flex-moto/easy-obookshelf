@@ -25,8 +25,26 @@ function buildFrontmatter(metadata: BookMetadata, coverPath: string, settings: B
 	};
 }
 
-function buildNoteBody(): string {
-	return "\n## メモ・感想\n\n";
+function buildNoteBody(coverPath: string): string {
+	const cover = coverPath
+		? `\n<!-- bookshelf-cover:start -->\n![[${coverPath}|240]]\n<!-- bookshelf-cover:end -->\n`
+		: "";
+	return `${cover}\n## メモ・感想\n\n`;
+}
+
+async function updateCoverInBody(app: App, file: TFile, coverPath: string): Promise<void> {
+	if (!coverPath) return;
+	const content = await app.vault.read(file);
+	const coverBlock = `<!-- bookshelf-cover:start -->\n![[${coverPath}|240]]\n<!-- bookshelf-cover:end -->`;
+	const blockPattern = /<!-- bookshelf-cover:start -->[\s\S]*?<!-- bookshelf-cover:end -->/;
+	if (blockPattern.test(content)) {
+		await app.vault.modify(file, content.replace(blockPattern, coverBlock));
+		return;
+	}
+	const memoHeading = "\n## メモ・感想";
+	if (content.includes(memoHeading)) {
+		await app.vault.modify(file, content.replace(memoHeading, `\n${coverBlock}\n${memoHeading}`));
+	}
 }
 
 export async function createBookNote(
@@ -69,7 +87,7 @@ export async function createBookNote(
 		filePath = `${booksFolder}/${fileName}`;
 	}
 	const frontmatter = buildFrontmatter(metadata, coverPath, settings);
-	const content = `---\n---\n${buildNoteBody()}`;
+	const content = `---\n---\n${buildNoteBody(coverPath)}`;
 	const file = await app.vault.create(filePath, content);
 	await app.fileManager.processFrontMatter(file, (fm) => {
 		Object.assign(fm, frontmatter);
@@ -95,6 +113,7 @@ async function overwriteNote(
 	await app.fileManager.processFrontMatter(file, (fm) => {
 		Object.assign(fm, frontmatter);
 	});
+	await updateCoverInBody(app, file, coverPath);
 	await app.workspace.getLeaf(false).openFile(file);
 	new Notice(`書籍ノートを更新しました: ${file.name}`);
 	return file;

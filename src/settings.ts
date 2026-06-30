@@ -1,4 +1,5 @@
 import { type App, PluginSettingTab, Setting } from "obsidian";
+import { testGoogleBooksApiKey } from "./book-api";
 import type BookshelfPlugin from "./main";
 import type { BookStatus, DuplicateIsbnAction } from "./types";
 
@@ -13,7 +14,7 @@ export class BookshelfSettingTab extends PluginSettingTab {
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
-		containerEl.createEl("h2", { text: "Bookshelf 設定" });
+		containerEl.createEl("h2", { text: "ISBN Bulk Import Bookshelf Builder 設定" });
 
 		new Setting(containerEl)
 			.setName("書籍ノートの保存フォルダ")
@@ -41,9 +42,10 @@ export class BookshelfSettingTab extends PluginSettingTab {
 					}),
 			);
 
-		new Setting(containerEl)
+		const googleBooksSetting = new Setting(containerEl)
 			.setName("Google Books API キー（任意）")
-			.setDesc("レート制限を緩和するために任意で設定できます")
+			.setDesc("レート制限を緩和するために任意で設定できます");
+		googleBooksSetting
 			.addText((text) =>
 				text
 					.setPlaceholder("AIza...")
@@ -52,7 +54,21 @@ export class BookshelfSettingTab extends PluginSettingTab {
 						this.plugin.settings.googleBooksApiKey = value.trim();
 						await this.plugin.saveSettings();
 					}),
+			)
+			.addButton((button) =>
+				button.setButtonText("APIキーをテスト").onClick(async () => {
+					button.setDisabled(true);
+					button.setButtonText("確認中...");
+					apiStatusEl.setText("Google Books APIへ接続しています...");
+					apiStatusEl.removeClass("is-success", "is-error");
+					const result = await testGoogleBooksApiKey(this.plugin.settings.googleBooksApiKey);
+					apiStatusEl.setText(result.message);
+					apiStatusEl.addClass(result.status === "success" ? "is-success" : "is-error");
+					button.setButtonText("APIキーをテスト");
+					button.setDisabled(false);
+				}),
 			);
+		const apiStatusEl = containerEl.createDiv("bookshelf-api-test-status");
 
 		new Setting(containerEl)
 			.setName("重複 ISBN 時の動作")

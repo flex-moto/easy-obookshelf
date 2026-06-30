@@ -1,6 +1,7 @@
 import { Notice, Plugin, type TFile } from "obsidian";
 import { fetchByISBN } from "./book-api";
 import { BookSelectModal } from "./book-select-modal";
+import { createBookshelfFromCsv, exportIsbnsFromBackCovers } from "./bulk-import";
 import { EditBookModal } from "./edit-modal";
 import { setManualCover } from "./image-cache";
 import { ISBNModal } from "./isbn-modal";
@@ -14,8 +15,11 @@ export default class BookshelfPlugin extends Plugin {
 	async onload(): Promise<void> {
 		await this.loadSettings();
 
-		this.addRibbonIcon("book-open", "ISBN から本を追加", () => {
-			new ISBNModal(this.app, this.settings).open();
+		this.addRibbonIcon("scan-barcode", "裏表紙画像フォルダから ISBN 一覧 CSV を作成", () => {
+			void exportIsbnsFromBackCovers();
+		});
+		this.addRibbonIcon("library-big", "ISBN 一覧 CSV から本棚を一括作成", () => {
+			void createBookshelfFromCsv(this.app, this.settings);
 		});
 		this.addRibbonIcon("book-marked", "書籍ノートを編集", () => {
 			new BookSelectModal(this.app, this.settings).open();
@@ -85,12 +89,48 @@ export default class BookshelfPlugin extends Plugin {
 			},
 		});
 
+		this.addCommand({
+			id: "export-isbns-from-back-covers",
+			name: "裏表紙画像フォルダから ISBN 一覧 CSV を作成",
+			callback: () => {
+				void exportIsbnsFromBackCovers();
+			},
+		});
+
+		this.addCommand({
+			id: "create-bookshelf-from-isbn-csv",
+			name: "ISBN 一覧 CSV から本棚を作成",
+			callback: () => {
+				void createBookshelfFromCsv(this.app, this.settings);
+			},
+		});
+
 		this.addSettingTab(new BookshelfSettingTab(this.app, this));
 
 		await this.ensureBasesFile();
+		this.registerEvent(
+			this.app.workspace.on("layout-change", () => {
+				this.refreshBookshelfViewStyles();
+			}),
+		);
+		this.app.workspace.onLayoutReady(() => {
+			this.refreshBookshelfViewStyles();
+		});
 	}
 
-	onunload(): void {}
+	onunload(): void {
+		for (const leaf of this.app.workspace.getLeavesOfType("bases")) {
+			leaf.view.containerEl.removeClass("isbn-bulk-bookshelf-view");
+		}
+	}
+
+	private refreshBookshelfViewStyles(): void {
+		const bookshelfPath = `${this.settings.booksFolder}/本棚.base`;
+		for (const leaf of this.app.workspace.getLeavesOfType("bases")) {
+			const state = leaf.view.getState();
+			leaf.view.containerEl.toggleClass("isbn-bulk-bookshelf-view", state.file === bookshelfPath);
+		}
+	}
 
 	private async handleUpdateNote(_file: TFile, isbn: string): Promise<void> {
 		try {
