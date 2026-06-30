@@ -53,6 +53,7 @@ export default class BookshelfPlugin extends Plugin {
 			callback: () => {
 				void addDescriptionsToKindleHighlights(
 					this.app,
+					this.settings.kindleHighlightsFolder,
 					this.settings.googleBooksApiKey || undefined,
 				);
 			},

@@ -5,6 +5,7 @@ export type BookStatus = "to-read" | "reading" | "completed" | "abandoned";
 export interface BookshelfSettings {
 	booksFolder: string;
 	coversFolder: string;
+	kindleHighlightsFolder: string;
 	googleBooksApiKey: string;
 	duplicateIsbnAction: DuplicateIsbnAction;
 	defaultStatus: BookStatus;
@@ -14,6 +15,7 @@ export interface BookshelfSettings {
 export const DEFAULT_SETTINGS: BookshelfSettings = {
 	booksFolder: "Books",
 	coversFolder: "Books/covers",
+	kindleHighlightsFolder: "02_読書メモ",
 	googleBooksApiKey: "",
 	duplicateIsbnAction: "open",
 	defaultStatus: "to-read",

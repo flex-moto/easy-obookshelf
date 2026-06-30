@@ -1,4 +1,4 @@
-import { type App, PluginSettingTab, Setting } from "obsidian";
+import { type App, PluginSettingTab, Setting, TFolder } from "obsidian";
 import { testGoogleBooksApiKey } from "./book-api";
 import type BookshelfPlugin from "./main";
 import type { BookStatus, DuplicateIsbnAction } from "./types";
@@ -41,6 +41,30 @@ export class BookshelfSettingTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					}),
 			);
+
+		const kindleFolders = this.app.vault
+			.getAllLoadedFiles()
+			.filter((file): file is TFolder => file instanceof TFolder && file.path !== "/")
+			.map((folder) => folder.path)
+			.sort((left, right) => left.localeCompare(right, "ja"));
+		if (
+			this.plugin.settings.kindleHighlightsFolder &&
+			!kindleFolders.includes(this.plugin.settings.kindleHighlightsFolder)
+		) {
+			kindleFolders.unshift(this.plugin.settings.kindleHighlightsFolder);
+		}
+		new Setting(containerEl)
+			.setName("Kindle Highlightsノートのフォルダ")
+			.setDesc("概要を一括追加するKindle Highlightsノートの保存フォルダ")
+			.addDropdown((dropdown) => {
+				for (const folder of kindleFolders) {
+					dropdown.addOption(folder, folder);
+				}
+				dropdown.setValue(this.plugin.settings.kindleHighlightsFolder).onChange(async (value) => {
+					this.plugin.settings.kindleHighlightsFolder = value;
+					await this.plugin.saveSettings();
+				});
+			});
 
 		const googleBooksSetting = new Setting(containerEl)
 			.setName("Google Books API キー（任意）")

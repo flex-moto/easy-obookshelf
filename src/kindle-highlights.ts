@@ -7,16 +7,15 @@ interface KindleBookNote {
 	author: string;
 }
 
-const KINDLE_HIGHLIGHTS_FOLDER = "02_読書メモ";
-
 function hasKindleTag(tags: unknown): boolean {
 	if (typeof tags === "string") return tags.toLowerCase() === "kindle";
 	return Array.isArray(tags) && tags.some((tag) => String(tag).toLowerCase() === "kindle");
 }
 
-function findKindleBookNotes(app: App): KindleBookNote[] {
+function findKindleBookNotes(app: App, folder: string): KindleBookNote[] {
+	const folderPrefix = `${folder.replace(/^\/+|\/+$/g, "")}/`;
 	return app.vault.getMarkdownFiles().flatMap((file) => {
-		if (!file.path.startsWith(`${KINDLE_HIGHLIGHTS_FOLDER}/`)) return [];
+		if (!file.path.startsWith(folderPrefix)) return [];
 		const frontmatter = app.metadataCache.getFileCache(file)?.frontmatter;
 		if (!frontmatter || !hasKindleTag(frontmatter.tags)) return [];
 		const title = String(frontmatter["kindle-title"] ?? frontmatter.title ?? "").trim();
@@ -58,11 +57,12 @@ async function updateKindleDescription(
 
 export async function addDescriptionsToKindleHighlights(
 	app: App,
+	folder: string,
 	googleBooksApiKey?: string,
 ): Promise<void> {
-	const notes = findKindleBookNotes(app);
+	const notes = findKindleBookNotes(app, folder);
 	if (notes.length === 0) {
-		new Notice("Kindle Highlightsノートが見つかりませんでした。");
+		new Notice(`Kindle Highlightsノートが見つかりませんでした: ${folder}`);
 		return;
 	}
 	const progress = new Notice(`Kindle Highlightsへ概要を追加中... 0/${notes.length}`, 0);

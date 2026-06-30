@@ -59,8 +59,8 @@ Add this repository through the [BRAT](https://github.com/TfTHacker/obsidian42-b
    notes in bulk while preserving reading status, progress, ratings, and notes.
 6. **"Add descriptions to Kindle Highlights notes"** requires the
    [Kindle Highlights](https://github.com/hadynz/obsidian-kindle-plugin)
-   community plugin to be installed and its notes to have been synced to
-   `02_読書メモ`.
+   community plugin to be installed. Select its synced notes folder in this
+   plugin's settings before running the command.
 
 ## Requirements
 
@@ -184,12 +184,12 @@ ISBN から書籍メタデータを取得してノートを作成し、本棚と
 - 「表紙画像を手動で設定」: 開いている書籍ノートの表紙を差し替えます。
 - 「全書籍の書籍情報・概要を再取得」: ISBN付きノートを一括更新します。読書状態、
   進捗、評価、日付、メモ、既存表紙は維持されます。
-- 「Kindle Highlightsノートへ概要を一括追加」: `02_読書メモ`内のKindleノートを
+- 「Kindle Highlightsノートへ概要を一括追加」: 設定画面で選択したフォルダ内のKindleノートを
   タイトル・著者でGoogle Booksと照合し、表紙と既存の見出しの間に概要を追加します。
   Kindleのハイライト、読書目的、アクションプランは維持されます。
   この機能を利用するには、コミュニティプラグイン
   [Kindle Highlights](https://github.com/hadynz/obsidian-kindle-plugin)を
-  インストールし、Kindleノートを`02_読書メモ`へ同期しておく必要があります。
+  インストールし、設定画面でKindleノートの同期先フォルダを選択する必要があります。
   照合時には、ノート内の書名と著者名がGoogle Booksへ送信されます。
 
 ### 対象書籍
