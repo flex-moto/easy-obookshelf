@@ -168,6 +168,7 @@ interface GoogleBooksVolumeInfo {
 	publisher?: string;
 	publishedDate?: string;
 	pageCount?: number;
+	description?: string;
 	imageLinks?: {
 		smallThumbnail?: string;
 		thumbnail?: string;
@@ -227,6 +228,7 @@ async function fetchFromGoogleBooks(isbn: string, apiKey?: string): Promise<Book
 			coverUrl,
 			coverUrls,
 			language,
+			description: normalizeDescription(info.description),
 		};
 	} catch (_e) {
 		return null;
@@ -241,6 +243,8 @@ interface OpenLibraryBook {
 	number_of_pages?: number;
 	cover?: { large?: string; medium?: string };
 	languages?: { key: string }[];
+	excerpts?: { text?: string }[];
+	notes?: string;
 }
 
 async function fetchFromOpenLibrary(isbn: string): Promise<BookMetadata | null> {
@@ -269,6 +273,7 @@ async function fetchFromOpenLibrary(isbn: string): Promise<BookMetadata | null> 
 			pages,
 			coverUrl: coverUrl.replace(/^http:/, "https:"),
 			language,
+			description: normalizeDescription(book.notes || book.excerpts?.[0]?.text),
 		};
 	} catch (_e) {
 		return null;
@@ -288,6 +293,21 @@ interface OpenBDSummary {
 
 interface OpenBDRecord {
 	summary?: OpenBDSummary;
+	onix?: {
+		CollateralDetail?: {
+			TextContent?:
+				| { Text?: string }
+				| Array<{
+						Text?: string;
+				  }>;
+		};
+	};
+}
+
+function normalizeDescription(description?: string): string {
+	if (!description) return "";
+	const document = new DOMParser().parseFromString(description, "text/html");
+	return (document.body.textContent ?? description).replace(/\s+/g, " ").trim();
 }
 
 async function fetchFromOpenBD(isbn: string): Promise<BookMetadata | null> {
@@ -306,6 +326,12 @@ async function fetchFromOpenBD(isbn: string): Promise<BookMetadata | null> {
 		const publisher = summary.publisher || "";
 		const publishDate = summary.pubdate || "";
 		const coverUrl = summary.cover || "";
+		const textContent = record.onix?.CollateralDetail?.TextContent;
+		const descriptions = Array.isArray(textContent)
+			? textContent
+			: textContent
+				? [textContent]
+				: [];
 		return {
 			title,
 			author,
@@ -315,6 +341,7 @@ async function fetchFromOpenBD(isbn: string): Promise<BookMetadata | null> {
 			pages: 0,
 			coverUrl: coverUrl.replace(/^http:/, "https:"),
 			language: "ja",
+			description: normalizeDescription(descriptions.find((item) => item.Text)?.Text),
 		};
 	} catch (_e) {
 		return null;
@@ -351,6 +378,12 @@ export async function fetchByISBN(isbn: string, googleBooksApiKey?: string): Pro
 	}
 	googleMetadata ??= await fetchFromGoogleBooks(normalized, googleBooksApiKey);
 	openLibraryMetadata ??= await fetchFromOpenLibrary(normalized);
+	metadata.description =
+		googleMetadata?.description ||
+		openBdMetadata?.description ||
+		openLibraryMetadata?.description ||
+		metadata.description ||
+		"";
 	const fallbackUrl = isJapaneseIsbn(normalized)
 		? `https://thumbnail-s.images.books.or.jp/${normalized}.jpg`
 		: `https://covers.openlibrary.org/b/isbn/${normalized}-L.jpg`;

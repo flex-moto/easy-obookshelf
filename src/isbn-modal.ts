@@ -273,6 +273,7 @@ export class ISBNModal extends Modal {
 							pages: Number.parseInt(pagesValue) || 0,
 							coverUrl: prefill?.autoCoverUrl ?? "",
 							language: languageValue,
+							description: prefill?.metadata.description,
 						};
 						let coverPath = "";
 						if (coverFile) {
