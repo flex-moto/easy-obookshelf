@@ -48,16 +48,15 @@ Add this repository through the [BRAT](https://github.com/TfTHacker/obsidian42-b
 
 ## Usage
 
-1. Click the **barcode-scan** ribbon icon, or run **"Create ISBN list CSV from back-cover image folder"**, to scan ISBN
+1. Click the **barcode-scan** ribbon icon to scan ISBN
    barcodes from a directory of JPG, PNG, WebP, GIF, BMP, HEIC, or HEIF images.
-2. Click the **library** ribbon icon, or run **"Create bookshelf from ISBN list CSV"**, to fetch metadata and create book
+2. Click the **library** ribbon icon to fetch metadata and create book
    notes in bulk. The importer accepts an `isbn` column, or ISBNs in the first
    column of a headerless CSV.
 3. Use the **book-marked** ribbon icon to edit an existing book note.
-4. Update an existing note's metadata via the **"Update book note"** command.
-5. Replace the cover image via the **"Set cover image manually"** command.
-6. Run **"Refresh high-resolution covers for all books"** to replace cached
-   low-resolution covers with the best available image.
+4. Replace a cover via **"Set cover image manually"** in the command palette.
+5. Run **"Refresh metadata and descriptions for all books"** to update existing
+   notes in bulk while preserving reading status, progress, ratings, and notes.
 
 ## Requirements
 
@@ -120,8 +119,8 @@ Push a Git tag (matching the `manifest.json` version, **no `v` prefix**) and the
 
 ```sh
 # After bumping manifest.json and package.json
-git tag 0.0.2
-git push origin 0.0.2
+git tag 0.0.3
+git push origin 0.0.3
 ```
 
 ## Plugin identity
@@ -148,7 +147,8 @@ ISBN から書籍メタデータを取得してノートを作成し、本棚と
 - 表紙画像の手動設定（ドラッグ&ドロップ / クリップボード貼り付け対応）
 - 裏表紙画像から ISBN を一括検出して CSV 出力
 - ISBN 一覧 CSV から書籍ノートを一括作成
-- 低解像度画像を除外し、全書籍の高解像度表紙を再取得
+- 低解像度画像を除外し、高解像度の表紙を優先して保存
+- 既存書籍の書誌情報・概要を一括再取得
 
 ### 裏表紙の写真から Obsidian の本棚へ
 
@@ -161,20 +161,20 @@ ISBN から書籍メタデータを取得してノートを作成し、本棚と
 
 ### 一括登録
 
-1. コマンドパレットから「裏表紙画像フォルダから ISBN 一覧 CSV を作成」を実行し、
+1. サイドバーのバーコードスキャンアイコンから、
    JPG / PNG / WebP / GIF / BMP / HEIC / HEIF 画像が入ったフォルダを選択します。
 2. `filename,isbn,status,error` 形式の CSV が作成されます。読み取れなかった画像も
    `not_found` として残るため、必要に応じて ISBN を手入力できます。
    バーコードを検出できない場合は、印刷されたISBN文字列をmacOSのVision OCRで
    読み取ります。画像は外部へ送信されません。
-3. 「ISBN 一覧 CSV から本棚を作成」を実行して CSV を選択します。`isbn` 列の有効な
+3. サイドバーのライブラリアイコンから CSV を選択します。`isbn` 列の有効な
    ISBNを重複除去し、既存の重複ISBN設定に従って書籍ノートを作成します。
 
-### 高解像度表紙の再取得
+### コマンドパレット
 
-コマンドパレットから「全書籍の高解像度表紙を再取得」を実行すると、Google Booksの
-最大画像・高倍率画像を優先し、低解像度画像を除外しながら他の提供元へフォールバック
-します。既存の書籍ノートとメモは維持され、表紙キャッシュだけが更新されます。
+- 「表紙画像を手動で設定」: 開いている書籍ノートの表紙を差し替えます。
+- 「全書籍の書籍情報・概要を再取得」: ISBN付きノートを一括更新します。読書状態、
+  進捗、評価、日付、メモ、既存表紙は維持されます。
 
 ### 対象書籍
 

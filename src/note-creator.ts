@@ -25,11 +25,16 @@ function buildFrontmatter(metadata: BookMetadata, coverPath: string, settings: B
 	};
 }
 
-function buildNoteBody(coverPath: string): string {
+function buildDescriptionBlock(description = ""): string {
+	const content = description.trim();
+	return `<!-- bookshelf-description:start -->\n## 概要\n\n${content}\n<!-- bookshelf-description:end -->`;
+}
+
+function buildNoteBody(coverPath: string, description = ""): string {
 	const cover = coverPath
 		? `\n<!-- bookshelf-cover:start -->\n![[${coverPath}|240]]\n<!-- bookshelf-cover:end -->\n`
 		: "";
-	return `${cover}\n## メモ・感想\n\n`;
+	return `${cover}\n${buildDescriptionBlock(description)}\n\n## メモ・感想\n\n`;
 }
 
 async function updateCoverInBody(app: App, file: TFile, coverPath: string): Promise<void> {
@@ -44,6 +49,28 @@ async function updateCoverInBody(app: App, file: TFile, coverPath: string): Prom
 	const memoHeading = "\n## メモ・感想";
 	if (content.includes(memoHeading)) {
 		await app.vault.modify(file, content.replace(memoHeading, `\n${coverBlock}\n${memoHeading}`));
+	}
+}
+
+async function updateDescriptionInBody(
+	app: App,
+	file: TFile,
+	description: string | undefined,
+): Promise<void> {
+	const content = await app.vault.read(file);
+	const descriptionBlock = buildDescriptionBlock(description);
+	const blockPattern =
+		/<!-- bookshelf-description:start -->[\s\S]*?<!-- bookshelf-description:end -->/;
+	if (blockPattern.test(content)) {
+		await app.vault.modify(file, content.replace(blockPattern, descriptionBlock));
+		return;
+	}
+	const memoHeading = "\n## メモ・感想";
+	if (content.includes(memoHeading)) {
+		await app.vault.modify(
+			file,
+			content.replace(memoHeading, `\n${descriptionBlock}\n${memoHeading}`),
+		);
 	}
 }
 
@@ -87,7 +114,7 @@ export async function createBookNote(
 		filePath = `${booksFolder}/${fileName}`;
 	}
 	const frontmatter = buildFrontmatter(metadata, coverPath, settings);
-	const content = `---\n---\n${buildNoteBody(coverPath)}`;
+	const content = `---\n---\n${buildNoteBody(coverPath, metadata.description)}`;
 	const file = await app.vault.create(filePath, content);
 	await app.fileManager.processFrontMatter(file, (fm) => {
 		Object.assign(fm, frontmatter);
@@ -114,6 +141,7 @@ async function overwriteNote(
 		Object.assign(fm, frontmatter);
 	});
 	await updateCoverInBody(app, file, coverPath);
+	await updateDescriptionInBody(app, file, metadata.description);
 	await app.workspace.getLeaf(false).openFile(file);
 	new Notice(`書籍ノートを更新しました: ${file.name}`);
 	return file;
@@ -193,6 +221,23 @@ export function findNoteByISBN(app: App, isbn: string): TFile | null {
 	return null;
 }
 
+export async function updateBookMetadata(
+	app: App,
+	file: TFile,
+	metadata: BookMetadata,
+): Promise<void> {
+	await app.fileManager.processFrontMatter(file, (fm) => {
+		fm.title = metadata.title;
+		fm.author = metadata.author;
+		fm.publisher = metadata.publisher;
+		fm.isbn = metadata.isbn;
+		fm.publishDate = metadata.publishDate;
+		fm.pages = metadata.pages;
+		fm.language = metadata.language;
+	});
+	await updateDescriptionInBody(app, file, metadata.description);
+}
+
 export async function updateBookNote(
 	app: App,
 	metadata: BookMetadata,
@@ -208,5 +253,8 @@ export async function updateBookNote(
 		new Notice("このノートには ISBN フィールドがありません。");
 		return;
 	}
-	await overwriteNote(app, file, metadata, settings.coversFolder, settings);
+	await updateBookMetadata(app, file, metadata);
+	await refreshBookCover(app, file, metadata, settings);
+	await app.workspace.getLeaf(false).openFile(file);
+	new Notice(`書籍情報を更新しました: ${file.name}`);
 }

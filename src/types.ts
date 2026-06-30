@@ -30,6 +30,7 @@ export interface BookMetadata {
 	coverUrl: string;
 	coverUrls?: string[];
 	language: string;
+	description?: string;
 }
 
 export interface BookNoteFrontmatter {
