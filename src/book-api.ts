@@ -180,6 +180,118 @@ interface GoogleBooksVolumeInfo {
 	language?: string;
 }
 
+function normalizeForMatch(value: string): string {
+	return value
+		.normalize("NFKC")
+		.toLowerCase()
+		.replace(/[\s　:：・,，.。!！?？'"“”‘’()[\]{}「」『』【】〈〉《》\-—–]/g, "");
+}
+
+function scoreGoogleBookMatch(info: GoogleBooksVolumeInfo, title: string, author: string): number {
+	const expectedTitle = normalizeForMatch(title);
+	const candidateTitle = normalizeForMatch(info.title ?? "");
+	if (!expectedTitle || !candidateTitle) return 0;
+	let score = 0;
+	if (candidateTitle === expectedTitle) {
+		score += 10;
+	} else if (candidateTitle.includes(expectedTitle) || expectedTitle.includes(candidateTitle)) {
+		score += 6;
+	}
+	const candidateAuthors = normalizeForMatch((info.authors ?? []).join(" "));
+	const authorParts = author
+		.split(/\s+(?:and|＆|&)\s+|[,、，]/i)
+		.map(normalizeForMatch)
+		.filter((part) => part.length >= 2);
+	if (authorParts.some((part) => candidateAuthors.includes(part))) score += 4;
+	return score;
+}
+
+export interface BookDescriptionResult {
+	description: string;
+	needsReview: boolean;
+}
+
+function simplifyKindleTitle(title: string): string {
+	return title
+		.replace(/\s*[(（][^()（）]*[)）]\s*/g, " ")
+		.replace(/\s*[:：].+$/, "")
+		.replace(/\s+/g, " ")
+		.trim();
+}
+
+async function searchGoogleBooksByTitle(
+	title: string,
+	apiKey?: string,
+	exact = true,
+): Promise<GoogleBooksVolumeInfo[]> {
+	const query = exact ? `intitle:"${title.trim()}"` : `intitle:${title.trim()}`;
+	let url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=10`;
+	if (apiKey) url += `&key=${encodeURIComponent(apiKey)}`;
+	const response = await requestUrl({ url });
+	if (response.status !== 200 || !Array.isArray(response.json?.items)) return [];
+	return response.json.items
+		.map((item: { volumeInfo?: GoogleBooksVolumeInfo }) => item.volumeInfo)
+		.filter((info: GoogleBooksVolumeInfo | undefined): info is GoogleBooksVolumeInfo =>
+			Boolean(info?.title && info.description),
+		);
+}
+
+export async function fetchDescriptionByTitle(
+	title: string,
+	author: string,
+	apiKey?: string,
+): Promise<BookDescriptionResult | null> {
+	try {
+		const exactCandidates = await searchGoogleBooksByTitle(title, apiKey);
+		const exactMatches = exactCandidates
+			.map((info) => ({ info, score: scoreGoogleBookMatch(info, title, author) }))
+			.sort((left, right) => right.score - left.score);
+		const strongExactMatch = exactMatches.find((candidate) => candidate.score >= 6);
+		if (strongExactMatch?.info.description) {
+			return {
+				description: normalizeDescription(strongExactMatch.info.description),
+				needsReview: false,
+			};
+		}
+
+		const simplifiedTitle = simplifyKindleTitle(title);
+		if (simplifiedTitle) {
+			const fallbackCandidates = await searchGoogleBooksByTitle(simplifiedTitle, apiKey, false);
+			const fallbackMatches = fallbackCandidates
+				.map((info) => ({
+					info,
+					originalScore: scoreGoogleBookMatch(info, title, author),
+					simplifiedScore: scoreGoogleBookMatch(info, simplifiedTitle, author),
+				}))
+				.sort(
+					(left, right) =>
+						Math.max(right.originalScore, right.simplifiedScore) -
+						Math.max(left.originalScore, left.simplifiedScore),
+				);
+			const fallbackMatch = fallbackMatches.find(
+				(candidate) => candidate.originalScore >= 4 || candidate.simplifiedScore >= 4,
+			);
+			if (fallbackMatch?.info.description) {
+				return {
+					description: normalizeDescription(fallbackMatch.info.description),
+					needsReview: fallbackMatch.originalScore < 6,
+				};
+			}
+		}
+
+		const weakExactMatch = exactMatches.find((candidate) => candidate.score >= 4);
+		if (weakExactMatch?.info.description) {
+			return {
+				description: normalizeDescription(weakExactMatch.info.description),
+				needsReview: true,
+			};
+		}
+		return null;
+	} catch (_error) {
+		return null;
+	}
+}
+
 function buildGoogleCoverUrls(url: string): string[] {
 	if (!url) return [];
 	const normalized = url.replace(/^http:/, "https:").replace(/&edge=curl/g, "");

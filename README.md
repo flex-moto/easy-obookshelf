@@ -57,17 +57,30 @@ Add this repository through the [BRAT](https://github.com/TfTHacker/obsidian42-b
 4. Replace a cover via **"Set cover image manually"** in the command palette.
 5. Run **"Refresh metadata and descriptions for all books"** to update existing
    notes in bulk while preserving reading status, progress, ratings, and notes.
+6. **"Add descriptions to Kindle Highlights notes"** requires the
+   [Kindle Highlights](https://github.com/hadynz/obsidian-kindle-plugin)
+   community plugin to be installed. Select its synced notes folder in this
+   plugin's settings before running the command. It processes up to 150
+   unprocessed notes per run and skips notes already checked.
+7. Use **"Refresh descriptions for all Kindle Highlights notes"** only when
+   every Kindle description needs to be queried again, since it can issue many
+   API requests.
 
 ## Requirements
 
 - Desktop only (uses Electron file dialog and local filesystem for cover caching).
+- The Kindle description command requires the Kindle Highlights community plugin
+  and notes containing its `Kindle` tag, `kindle-title`, and `kindle-author`
+  properties.
 - Primarily intended for books published in Japan, especially ISBNs beginning with
   `978-4`. Overseas books may work when metadata is available from Google Books or
   Open Library, but they are not currently guaranteed or fully tested.
 
 ## Network use
 
-This plugin makes HTTPS requests to the following public services to fetch book metadata and cover images by ISBN. No personal data is sent — only the ISBN you enter.
+This plugin makes HTTPS requests to the following public services to fetch book
+metadata and cover images. ISBN lookups send the ISBN you enter. The Kindle
+description command sends the synced book title and author to Google Books.
 
 - **NDL (National Diet Library of Japan)** — `https://ndlsearch.ndl.go.jp` — primary metadata source for Japanese books.
 - **Google Books API** — `https://www.googleapis.com/books/v1` — fallback metadata source.
@@ -175,6 +188,18 @@ ISBN から書籍メタデータを取得してノートを作成し、本棚と
 - 「表紙画像を手動で設定」: 開いている書籍ノートの表紙を差し替えます。
 - 「全書籍の書籍情報・概要を再取得」: ISBN付きノートを一括更新します。読書状態、
   進捗、評価、日付、メモ、既存表紙は維持されます。
+- 「Kindle Highlightsノートへ概要を一括追加」: 設定画面で選択したフォルダ内のKindleノートを
+  タイトル・著者でGoogle Booksと照合し、表紙と既存の見出しの間に概要を追加します。
+  Kindleのハイライト、読書目的、アクションプランは維持されます。
+  1回につき未処理のノートを最大150冊処理します。概要を追加済み、または概要なしを
+  確認済みのノートはスキップされ、再実行すると残りの未処理ノートへ進みます。
+  この機能を利用するには、コミュニティプラグイン
+  [Kindle Highlights](https://github.com/hadynz/obsidian-kindle-plugin)を
+  インストールし、設定画面でKindleノートの同期先フォルダを選択する必要があります。
+  照合時には、ノート内の書名と著者名がGoogle Booksへ送信されます。
+- 「Kindle Highlightsノートの概要を全件再取得」: 処理済み状態を無視して、選択した
+  フォルダ内の全Kindleノートを再照合します。APIリクエスト数が増えるため、概要の
+  再確認が必要な場合にのみ使用してください。
 
 ### 対象書籍
 
