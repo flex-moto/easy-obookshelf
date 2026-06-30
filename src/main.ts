@@ -3,6 +3,7 @@ import { fetchByISBN } from "./book-api";
 import { BookSelectModal } from "./book-select-modal";
 import { createBookshelfFromCsv, exportIsbnsFromBackCovers } from "./bulk-import";
 import { setManualCover } from "./image-cache";
+import { addDescriptionsToKindleHighlights } from "./kindle-highlights";
 import { updateBookMetadata } from "./note-creator";
 import { BookshelfSettingTab } from "./settings";
 import { type BookshelfSettings, DEFAULT_SETTINGS } from "./types";
@@ -43,6 +44,17 @@ export default class BookshelfPlugin extends Plugin {
 			name: "全書籍の書籍情報・概要を再取得",
 			callback: () => {
 				void this.handleRefreshAllMetadata();
+			},
+		});
+
+		this.addCommand({
+			id: "add-descriptions-to-kindle-highlights",
+			name: "Kindle Highlightsノートへ概要を一括追加",
+			callback: () => {
+				void addDescriptionsToKindleHighlights(
+					this.app,
+					this.settings.googleBooksApiKey || undefined,
+				);
 			},
 		});
 

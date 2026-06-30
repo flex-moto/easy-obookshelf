@@ -180,6 +180,65 @@ interface GoogleBooksVolumeInfo {
 	language?: string;
 }
 
+function normalizeForMatch(value: string): string {
+	return value
+		.normalize("NFKC")
+		.toLowerCase()
+		.replace(/[\s　:：・,，.。!！?？'"“”‘’()[\]{}「」『』【】〈〉《》\-—–]/g, "");
+}
+
+function scoreGoogleBookMatch(info: GoogleBooksVolumeInfo, title: string, author: string): number {
+	const expectedTitle = normalizeForMatch(title);
+	const candidateTitle = normalizeForMatch(info.title ?? "");
+	if (!expectedTitle || !candidateTitle) return 0;
+	let score = 0;
+	if (candidateTitle === expectedTitle) {
+		score += 10;
+	} else if (candidateTitle.includes(expectedTitle) || expectedTitle.includes(candidateTitle)) {
+		score += 6;
+	}
+	const candidateAuthors = normalizeForMatch((info.authors ?? []).join(" "));
+	const authorParts = author
+		.split(/\s+(?:and|＆|&)\s+|[,、，]/i)
+		.map(normalizeForMatch)
+		.filter((part) => part.length >= 2);
+	if (authorParts.some((part) => candidateAuthors.includes(part))) score += 4;
+	return score;
+}
+
+export async function fetchDescriptionByTitle(
+	title: string,
+	author: string,
+	apiKey?: string,
+): Promise<string> {
+	const query = `intitle:"${title.trim()}"`;
+	let url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=10`;
+	if (apiKey) url += `&key=${encodeURIComponent(apiKey)}`;
+	try {
+		const response = await requestUrl({ url });
+		if (response.status !== 200 || !Array.isArray(response.json?.items)) return "";
+		const candidates = response.json.items
+			.map((item: { volumeInfo?: GoogleBooksVolumeInfo }) => item.volumeInfo)
+			.filter((info: GoogleBooksVolumeInfo | undefined): info is GoogleBooksVolumeInfo =>
+				Boolean(info?.title && info.description),
+			)
+			.map((info: GoogleBooksVolumeInfo) => ({
+				description: normalizeDescription(info.description),
+				score: scoreGoogleBookMatch(info, title, author),
+			}))
+			.filter((candidate: { description: string; score: number }) => candidate.score >= 6)
+			.sort(
+				(
+					left: { description: string; score: number },
+					right: { description: string; score: number },
+				) => right.score - left.score,
+			);
+		return candidates[0]?.description ?? "";
+	} catch (_error) {
+		return "";
+	}
+}
+
 function buildGoogleCoverUrls(url: string): string[] {
 	if (!url) return [];
 	const normalized = url.replace(/^http:/, "https:").replace(/&edge=curl/g, "");
