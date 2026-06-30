@@ -84,3 +84,69 @@
 .bookshelf-input-isbn {
 	width: 220px;
 }
+.bookshelf-api-test-status {
+	margin: -8px 0 16px;
+	padding: 0 12px;
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}
+
+.bookshelf-api-test-status.is-success {
+	color: var(--text-success);
+}
+
+.bookshelf-api-test-status.is-error {
+	color: var(--text-error);
+}
+
+.isbn-bulk-bookshelf-view {
+	--bases-cards-container-background: #e8dac3;
+	--bases-cards-background: #fffaf0;
+	--bases-cards-cover-background: #d8c5a7;
+	--bases-cards-shadow: 0 2px 5px rgb(73 45 22 / 18%);
+	--bases-cards-shadow-hover: 0 5px 12px rgb(73 45 22 / 28%);
+}
+
+.isbn-bulk-bookshelf-view .bases-cards-container {
+	background-color: #e8dac3;
+	background-image:
+		linear-gradient(90deg, rgb(115 75 40 / 4%) 1px, transparent 1px),
+		linear-gradient(rgb(255 255 255 / 16%), rgb(115 75 40 / 6%)),
+		repeating-linear-gradient(
+			0deg,
+			transparent 0,
+			transparent 220px,
+			rgb(105 65 34 / 18%) 220px,
+			rgb(105 65 34 / 18%) 224px
+		);
+	background-size:
+		36px 100%,
+		100% 100%,
+		100% 224px;
+}
+
+.isbn-bulk-bookshelf-view .bases-cards-item {
+	border-color: rgb(121 82 48 / 24%);
+}
+
+body.theme-dark .isbn-bulk-bookshelf-view {
+	--bases-cards-container-background: #30271f;
+	--bases-cards-background: #403429;
+	--bases-cards-cover-background: #251e18;
+	--bases-cards-shadow: 0 2px 6px rgb(0 0 0 / 32%);
+	--bases-cards-shadow-hover: 0 5px 14px rgb(0 0 0 / 45%);
+}
+
+body.theme-dark .isbn-bulk-bookshelf-view .bases-cards-container {
+	background-color: #30271f;
+	background-image:
+		linear-gradient(90deg, rgb(255 224 184 / 3%) 1px, transparent 1px),
+		linear-gradient(rgb(255 255 255 / 3%), rgb(0 0 0 / 8%)),
+		repeating-linear-gradient(
+			0deg,
+			transparent 0,
+			transparent 220px,
+			rgb(12 8 5 / 42%) 220px,
+			rgb(12 8 5 / 42%) 224px
+		);
+}

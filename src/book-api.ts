@@ -1,6 +1,100 @@
 import { requestUrl } from "obsidian";
 import type { BookMetadata } from "./types";
 
+export type GoogleBooksApiKeyTestStatus =
+	| "success"
+	| "invalid"
+	| "quota-exceeded"
+	| "forbidden"
+	| "network-error";
+
+export interface GoogleBooksApiKeyTestResult {
+	status: GoogleBooksApiKeyTestStatus;
+	message: string;
+}
+
+interface GoogleBooksApiErrorResponse {
+	error?: {
+		code?: number;
+		message?: string;
+		status?: string;
+		errors?: Array<{ reason?: string }>;
+		details?: Array<{
+			reason?: string;
+			metadata?: {
+				quota_metric?: string;
+				service?: string;
+			};
+		}>;
+	};
+}
+
+export async function testGoogleBooksApiKey(apiKey: string): Promise<GoogleBooksApiKeyTestResult> {
+	const key = apiKey.trim();
+	if (!key) {
+		return {
+			status: "invalid",
+			message: "APIキーが入力されていません。",
+		};
+	}
+	const url = `https://www.googleapis.com/books/v1/volumes?q=isbn:9784797387247&maxResults=1&key=${encodeURIComponent(key)}`;
+	try {
+		const response = await requestUrl({ url, throw: false });
+		if (response.status === 200 && Array.isArray(response.json?.items)) {
+			return {
+				status: "success",
+				message: "APIキーは利用可能です。Google Booksから書籍情報を取得できました。",
+			};
+		}
+		const data = response.json as GoogleBooksApiErrorResponse | undefined;
+		const error = data?.error;
+		const reasons = [
+			...(error?.errors?.map((item) => item.reason ?? "") ?? []),
+			...(error?.details?.map((item) => item.reason ?? "") ?? []),
+		]
+			.join(" ")
+			.toLowerCase();
+		const message = (error?.message ?? "").toLowerCase();
+		if (
+			response.status === 429 ||
+			reasons.includes("ratelimit") ||
+			reasons.includes("quota") ||
+			message.includes("quota") ||
+			message.includes("rate limit")
+		) {
+			return {
+				status: "quota-exceeded",
+				message: "APIの割当を超過しています。Google Cloud Consoleで割当を確認してください。",
+			};
+		}
+		if (
+			reasons.includes("keyinvalid") ||
+			message.includes("api key not valid") ||
+			message.includes("invalid api key")
+		) {
+			return {
+				status: "invalid",
+				message: "APIキーが無効です。入力内容を確認してください。",
+			};
+		}
+		if (response.status === 401 || response.status === 403) {
+			return {
+				status: "forbidden",
+				message: "アクセスが拒否されました。Books APIの有効化とAPIキーの制限を確認してください。",
+			};
+		}
+		return {
+			status: "network-error",
+			message: `Google Books APIの確認に失敗しました（HTTP ${response.status}）。`,
+		};
+	} catch (error) {
+		return {
+			status: "network-error",
+			message: `通信エラー: ${error instanceof Error ? error.message : String(error)}`,
+		};
+	}
+}
+
 function normalizeIsbn(isbn: string): string {
 	return isbn.replace(/[\s\-]/g, "");
 }
@@ -18,19 +112,29 @@ async function fetchFromNDL(isbn: string): Promise<BookMetadata | null> {
 		const xml = parser.parseFromString(response.text, "text/xml");
 		const numberOfRecords = xml.querySelector("numberOfRecords")?.textContent?.trim();
 		if (!numberOfRecords || numberOfRecords === "0") return null;
-		const getTextContent = (tagName: string): string => {
-			const elements = xml.getElementsByTagNameNS("*", tagName);
-			for (let i = 0; i < elements.length; i++) {
-				const text = elements[i].textContent?.trim();
-				if (text) return text;
-			}
-			return "";
+		const getTextContent = (tagName: string, prefix?: string): string => {
+			const elements = Array.from(xml.getElementsByTagNameNS("*", tagName));
+			const preferred = prefix ? elements.find((element) => element.prefix === prefix) : undefined;
+			return (preferred ?? elements[0])?.textContent?.trim() ?? "";
 		};
-		const title = getTextContent("title") || "";
+		const getNestedText = (parentName: string, childName: string): string => {
+			const parent = Array.from(xml.getElementsByTagNameNS("*", parentName))[0];
+			if (!parent) return "";
+			return (
+				Array.from(parent.getElementsByTagNameNS("*", childName))[0]?.textContent?.trim() ?? ""
+			);
+		};
+		const partInformationCount = xml.getElementsByTagNameNS("*", "partInformation").length;
+		const partTitle = partInformationCount === 1 ? getNestedText("partInformation", "title") : "";
+		const title = partTitle || getTextContent("title", "dcterms");
 		if (!title) return null;
-		const author = getTextContent("creator") || getTextContent("contributor") || "";
-		const publisher = getTextContent("publisher") || "";
-		const publishDate = getTextContent("date") || "";
+		const partAuthor =
+			partInformationCount === 1 ? getNestedText("partInformation", "creator") : "";
+		const rawAuthor =
+			partAuthor || getTextContent("creator", "dc") || getTextContent("creator", "dcterms");
+		const author = rawAuthor.replace(/\s*(著|編|訳|監修|原著)\s*$/, "").trim();
+		const publisher = getNestedText("publisher", "name") || getTextContent("publisher", "dcterms");
+		const publishDate = getTextContent("date", "dcterms") || getTextContent("issued", "dcterms");
 		const pages = Number.parseInt(getTextContent("extent") || "0", 10) || 0;
 		return {
 			title,
@@ -180,6 +284,9 @@ async function fetchFromOpenBD(isbn: string): Promise<BookMetadata | null> {
 
 function buildCoverUrl(isbn: string, metadata: BookMetadata): string {
 	if (metadata.coverUrl) return metadata.coverUrl;
+	if (isJapaneseIsbn(isbn)) {
+		return `https://thumbnail-s.images.books.or.jp/${isbn}.jpg`;
+	}
 	return `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
 }
 
@@ -199,10 +306,25 @@ export async function fetchByISBN(isbn: string, googleBooksApiKey?: string): Pro
 		throw new Error(`書籍情報が見つかりませんでした: ISBN ${normalized}`);
 	}
 	if (!metadata.coverUrl) {
-		const forCover =
-			(isJapaneseIsbn(normalized) ? await fetchFromOpenBD(normalized) : null) ??
-			(await fetchFromGoogleBooks(normalized, googleBooksApiKey)) ??
-			(await fetchFromOpenLibrary(normalized));
+		let forCover: BookMetadata | null = null;
+		if (isJapaneseIsbn(normalized)) {
+			const openBdMetadata = await fetchFromOpenBD(normalized);
+			if (openBdMetadata?.coverUrl) {
+				forCover = openBdMetadata;
+			}
+		}
+		if (!forCover?.coverUrl) {
+			const googleMetadata = await fetchFromGoogleBooks(normalized, googleBooksApiKey);
+			if (googleMetadata?.coverUrl) {
+				forCover = googleMetadata;
+			}
+		}
+		if (!forCover?.coverUrl) {
+			const openLibraryMetadata = await fetchFromOpenLibrary(normalized);
+			if (openLibraryMetadata?.coverUrl) {
+				forCover = openLibraryMetadata;
+			}
+		}
 		if (forCover?.coverUrl) {
 			metadata.coverUrl = forCover.coverUrl;
 		}

@@ -1,4 +1,4 @@
-# Easy Bookshelf
+# ISBN Bulk Import Bookshelf Builder
 
 An Obsidian plugin that fetches book metadata from ISBN and helps you manage your personal bookshelf as notes.
 
@@ -9,25 +9,28 @@ An Obsidian plugin that fetches book metadata from ISBN and helps you manage you
 - **Bookshelf views via Bases** (Want to read / Reading / Finished)
 - **Manual entry and editing** of book notes
 - **Manual cover image** (drag & drop, clipboard paste, or file picker)
+- **Bulk ISBN extraction** from back-cover images to CSV
+- **OCR fallback** for printed ISBN-10 and ISBN-13 text when a barcode cannot be read (macOS)
+- **Bulk bookshelf creation** from an ISBN CSV file
 
 ## Installation
 
 ### From the Obsidian Community Plugins (planned)
 
-Search for `Easy Bookshelf` in **Settings → Community plugins** and install.
+Search for `ISBN Bulk Import Bookshelf Builder` in **Settings → Community plugins** and install.
 
 ### Manual installation
 
 Download the latest `main.js`, `manifest.json`, and `styles.css` from the [Releases](../../releases) page and place them in:
 
 ```
-<Vault>/.obsidian/plugins/easy-obookshelf/
+<Vault>/.obsidian/plugins/isbn-bulk-import-bookshelf-builder/
 ├── main.js
 ├── manifest.json
 └── styles.css
 ```
 
-Then enable **Easy Bookshelf** in **Settings → Community plugins**.
+Then enable **ISBN Bulk Import Bookshelf Builder** in **Settings → Community plugins**.
 
 ### Via BRAT
 
@@ -40,6 +43,11 @@ Add this repository through the [BRAT](https://github.com/TfTHacker/obsidian42-b
 3. Use the **book-marked** ribbon icon to edit an existing book note.
 4. Update an existing note's metadata via the **"Update book note"** command.
 5. Replace the cover image via the **"Set cover image manually"** command.
+6. Run **"Create ISBN list CSV from back-cover image folder"** to scan ISBN
+   barcodes from a directory of JPG, PNG, WebP, GIF, BMP, HEIC, or HEIF images.
+7. Run **"Create bookshelf from ISBN list CSV"** to fetch metadata and create book
+   notes in bulk. The importer accepts an `isbn` column, or ISBNs in the first
+   column of a headerless CSV.
 
 ## Requirements
 
@@ -103,14 +111,10 @@ git tag 1.1.1
 git push origin 1.1.1
 ```
 
-## Migration from `ob-book` (v1.0.x)
+## Plugin identity
 
-Starting with v1.1.0, the plugin ID has changed from `ob-book` to `easy-obookshelf` to comply with Obsidian's naming guidelines. To migrate:
-
-1. Disable and remove the old `ob-book` plugin from **Settings → Community plugins**.
-2. Delete the `<Vault>/.obsidian/plugins/ob-book/` folder.
-3. Install `easy-obookshelf` (see Installation above).
-4. Existing book notes and cover images in your vault are not affected — only the plugin folder name changes.
+This fork uses the plugin ID `isbn-bulk-import-bookshelf-builder`, so it can be
+installed alongside the original `easy-obookshelf` plugin.
 
 ## License
 
@@ -129,11 +133,25 @@ ISBN から書籍メタデータを取得してノートを作成し、本棚と
 - Bases ファイルによる本棚ビュー（読みたい / 読書中 / 読了）
 - 書籍ノートの手動入力・編集
 - 表紙画像の手動設定（ドラッグ&ドロップ / クリップボード貼り付け対応）
+- 裏表紙画像から ISBN を一括検出して CSV 出力
+- ISBN 一覧 CSV から書籍ノートを一括作成
+
+### 一括登録
+
+1. コマンドパレットから「裏表紙画像フォルダから ISBN 一覧 CSV を作成」を実行し、
+   JPG / PNG / WebP / GIF / BMP / HEIC / HEIF 画像が入ったフォルダを選択します。
+2. `filename,isbn,status,error` 形式の CSV が作成されます。読み取れなかった画像も
+   `not_found` として残るため、必要に応じて ISBN を手入力できます。
+   バーコードを検出できない場合は、印刷されたISBN文字列をmacOSのVision OCRで
+   読み取ります。画像は外部へ送信されません。
+3. 「ISBN 一覧 CSV から本棚を作成」を実行して CSV を選択します。`isbn` 列の有効な
+   ISBNを重複除去し、既存の重複ISBN設定に従って書籍ノートを作成します。
 
 ### 手動インストール
 
-[Releases](../../releases) から `main.js` / `manifest.json` / `styles.css` をダウンロードし、`<Vault>/.obsidian/plugins/easy-obookshelf/` に配置してください。
+[Releases](../../releases) から `main.js` / `manifest.json` / `styles.css` をダウンロードし、`<Vault>/.obsidian/plugins/isbn-bulk-import-bookshelf-builder/` に配置してください。
 
 ### v1.0.x からの移行
 
-v1.1.0 でプラグイン ID が `ob-book` → `easy-obookshelf` に変更されました。旧プラグインを削除し、新フォルダ名で再インストールしてください。Vault 内の書籍ノート・表紙画像はそのまま使えます。
+このフォークのプラグイン ID は `isbn-bulk-import-bookshelf-builder` です。
+元の `easy-obookshelf` と同時にインストールできます。

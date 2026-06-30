@@ -1,7 +1,16 @@
 import { type App, Notice, requestUrl } from "obsidian";
 
 async function urlToWebpArrayBuffer(url: string): Promise<ArrayBuffer> {
-	const response = await requestUrl({ url });
+	const isBooksOrJp = url.startsWith("https://thumbnail-s.images.books.or.jp/");
+	const response = await requestUrl({
+		url,
+		headers: isBooksOrJp
+			? {
+					Referer: "https://www.books.or.jp/",
+					"User-Agent": "Mozilla/5.0",
+				}
+			: undefined,
+	});
 	if (response.status !== 200) {
 		throw new Error(`画像の取得に失敗しました: ${response.status}`);
 	}
