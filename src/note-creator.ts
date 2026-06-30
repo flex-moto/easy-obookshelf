@@ -221,6 +221,23 @@ export function findNoteByISBN(app: App, isbn: string): TFile | null {
 	return null;
 }
 
+export async function updateBookMetadata(
+	app: App,
+	file: TFile,
+	metadata: BookMetadata,
+): Promise<void> {
+	await app.fileManager.processFrontMatter(file, (fm) => {
+		fm.title = metadata.title;
+		fm.author = metadata.author;
+		fm.publisher = metadata.publisher;
+		fm.isbn = metadata.isbn;
+		fm.publishDate = metadata.publishDate;
+		fm.pages = metadata.pages;
+		fm.language = metadata.language;
+	});
+	await updateDescriptionInBody(app, file, metadata.description);
+}
+
 export async function updateBookNote(
 	app: App,
 	metadata: BookMetadata,
@@ -236,5 +253,8 @@ export async function updateBookNote(
 		new Notice("このノートには ISBN フィールドがありません。");
 		return;
 	}
-	await overwriteNote(app, file, metadata, settings.coversFolder, settings);
+	await updateBookMetadata(app, file, metadata);
+	await refreshBookCover(app, file, metadata, settings);
+	await app.workspace.getLeaf(false).openFile(file);
+	new Notice(`書籍情報を更新しました: ${file.name}`);
 }

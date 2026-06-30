@@ -5,7 +5,7 @@ import { createBookshelfFromCsv, exportIsbnsFromBackCovers } from "./bulk-import
 import { EditBookModal } from "./edit-modal";
 import { setManualCover } from "./image-cache";
 import { ISBNModal } from "./isbn-modal";
-import { refreshBookCover, updateBookNote } from "./note-creator";
+import { refreshBookCover, updateBookMetadata, updateBookNote } from "./note-creator";
 import { BookshelfSettingTab } from "./settings";
 import { type BookshelfSettings, DEFAULT_SETTINGS } from "./types";
 
@@ -113,6 +113,14 @@ export default class BookshelfPlugin extends Plugin {
 			},
 		});
 
+		this.addCommand({
+			id: "refresh-all-book-metadata",
+			name: "全書籍の書籍情報・概要を再取得",
+			callback: () => {
+				void this.handleRefreshAllMetadata();
+			},
+		});
+
 		this.addSettingTab(new BookshelfSettingTab(this.app, this));
 
 		await this.ensureBasesFile();
@@ -197,6 +205,40 @@ export default class BookshelfPlugin extends Plugin {
 		}
 		progress.hide();
 		new Notice(`表紙の再取得が完了しました。成功 ${succeeded}冊 / 失敗 ${failed}冊`, 10000);
+	}
+
+	private async handleRefreshAllMetadata(): Promise<void> {
+		const books = this.app.vault.getMarkdownFiles().flatMap((file) => {
+			const frontmatter = this.app.metadataCache.getFileCache(file)?.frontmatter;
+			const isbn = typeof frontmatter?.isbn === "string" ? frontmatter.isbn : "";
+			return isbn ? [{ file, isbn }] : [];
+		});
+		if (books.length === 0) {
+			new Notice("ISBNを持つ書籍ノートがありません。");
+			return;
+		}
+		const progress = new Notice(`書籍情報・概要を再取得中... 0/${books.length}`, 0);
+		let succeeded = 0;
+		let failed = 0;
+		for (let index = 0; index < books.length; index++) {
+			const { file, isbn } = books[index];
+			progress.setMessage(
+				`書籍情報・概要を再取得中... ${index + 1}/${books.length}\n${file.basename}`,
+			);
+			try {
+				const metadata = await fetchByISBN(isbn, this.settings.googleBooksApiKey || undefined);
+				await updateBookMetadata(this.app, file, metadata);
+				succeeded++;
+			} catch (error) {
+				console.warn(`書籍情報の再取得に失敗しました: ${isbn}`, error);
+				failed++;
+			}
+		}
+		progress.hide();
+		new Notice(
+			`書籍情報・概要の再取得が完了しました。成功 ${succeeded}冊 / 失敗 ${failed}冊`,
+			10000,
+		);
 	}
 
 	private async ensureBasesFile(): Promise<void> {
