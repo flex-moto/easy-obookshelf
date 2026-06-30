@@ -206,36 +206,89 @@ function scoreGoogleBookMatch(info: GoogleBooksVolumeInfo, title: string, author
 	return score;
 }
 
+export interface BookDescriptionResult {
+	description: string;
+	needsReview: boolean;
+}
+
+function simplifyKindleTitle(title: string): string {
+	return title
+		.replace(/\s*[(（][^()（）]*[)）]\s*/g, " ")
+		.replace(/\s*[:：].+$/, "")
+		.replace(/\s+/g, " ")
+		.trim();
+}
+
+async function searchGoogleBooksByTitle(
+	title: string,
+	apiKey?: string,
+	exact = true,
+): Promise<GoogleBooksVolumeInfo[]> {
+	const query = exact ? `intitle:"${title.trim()}"` : `intitle:${title.trim()}`;
+	let url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=10`;
+	if (apiKey) url += `&key=${encodeURIComponent(apiKey)}`;
+	const response = await requestUrl({ url });
+	if (response.status !== 200 || !Array.isArray(response.json?.items)) return [];
+	return response.json.items
+		.map((item: { volumeInfo?: GoogleBooksVolumeInfo }) => item.volumeInfo)
+		.filter((info: GoogleBooksVolumeInfo | undefined): info is GoogleBooksVolumeInfo =>
+			Boolean(info?.title && info.description),
+		);
+}
+
 export async function fetchDescriptionByTitle(
 	title: string,
 	author: string,
 	apiKey?: string,
-): Promise<string> {
-	const query = `intitle:"${title.trim()}"`;
-	let url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=10`;
-	if (apiKey) url += `&key=${encodeURIComponent(apiKey)}`;
+): Promise<BookDescriptionResult | null> {
 	try {
-		const response = await requestUrl({ url });
-		if (response.status !== 200 || !Array.isArray(response.json?.items)) return "";
-		const candidates = response.json.items
-			.map((item: { volumeInfo?: GoogleBooksVolumeInfo }) => item.volumeInfo)
-			.filter((info: GoogleBooksVolumeInfo | undefined): info is GoogleBooksVolumeInfo =>
-				Boolean(info?.title && info.description),
-			)
-			.map((info: GoogleBooksVolumeInfo) => ({
-				description: normalizeDescription(info.description),
-				score: scoreGoogleBookMatch(info, title, author),
-			}))
-			.filter((candidate: { description: string; score: number }) => candidate.score >= 6)
-			.sort(
-				(
-					left: { description: string; score: number },
-					right: { description: string; score: number },
-				) => right.score - left.score,
+		const exactCandidates = await searchGoogleBooksByTitle(title, apiKey);
+		const exactMatches = exactCandidates
+			.map((info) => ({ info, score: scoreGoogleBookMatch(info, title, author) }))
+			.sort((left, right) => right.score - left.score);
+		const strongExactMatch = exactMatches.find((candidate) => candidate.score >= 6);
+		if (strongExactMatch?.info.description) {
+			return {
+				description: normalizeDescription(strongExactMatch.info.description),
+				needsReview: false,
+			};
+		}
+
+		const simplifiedTitle = simplifyKindleTitle(title);
+		if (simplifiedTitle) {
+			const fallbackCandidates = await searchGoogleBooksByTitle(simplifiedTitle, apiKey, false);
+			const fallbackMatches = fallbackCandidates
+				.map((info) => ({
+					info,
+					originalScore: scoreGoogleBookMatch(info, title, author),
+					simplifiedScore: scoreGoogleBookMatch(info, simplifiedTitle, author),
+				}))
+				.sort(
+					(left, right) =>
+						Math.max(right.originalScore, right.simplifiedScore) -
+						Math.max(left.originalScore, left.simplifiedScore),
+				);
+			const fallbackMatch = fallbackMatches.find(
+				(candidate) => candidate.originalScore >= 4 || candidate.simplifiedScore >= 4,
 			);
-		return candidates[0]?.description ?? "";
+			if (fallbackMatch?.info.description) {
+				return {
+					description: normalizeDescription(fallbackMatch.info.description),
+					needsReview: fallbackMatch.originalScore < 6,
+				};
+			}
+		}
+
+		const weakExactMatch = exactMatches.find((candidate) => candidate.score >= 4);
+		if (weakExactMatch?.info.description) {
+			return {
+				description: normalizeDescription(weakExactMatch.info.description),
+				needsReview: true,
+			};
+		}
+		return null;
 	} catch (_error) {
-		return "";
+		return null;
 	}
 }
 
