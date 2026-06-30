@@ -62,6 +62,9 @@ Add this repository through the [BRAT](https://github.com/TfTHacker/obsidian42-b
 ## Requirements
 
 - Desktop only (uses Electron file dialog and local filesystem for cover caching).
+- Primarily intended for books published in Japan, especially ISBNs beginning with
+  `978-4`. Overseas books may work when metadata is available from Google Books or
+  Open Library, but they are not currently guaranteed or fully tested.
 
 ## Network use
 
@@ -172,6 +175,12 @@ ISBN から書籍メタデータを取得してノートを作成し、本棚と
 コマンドパレットから「全書籍の高解像度表紙を再取得」を実行すると、Google Booksの
 最大画像・高倍率画像を優先し、低解像度画像を除外しながら他の提供元へフォールバック
 します。既存の書籍ノートとメモは維持され、表紙キャッシュだけが更新されます。
+
+### 対象書籍
+
+主な対象は、日本国内で発売された書籍（特に `978-4` で始まるISBN）です。
+海外書籍もGoogle BooksやOpen Libraryに書誌情報があれば登録できる場合がありますが、
+現時点では十分な動作検証を行っておらず、動作保証の対象外です。
 
 ### 手動インストール
 
