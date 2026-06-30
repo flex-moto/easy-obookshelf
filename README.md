@@ -13,6 +13,15 @@ An Obsidian plugin that fetches book metadata from ISBN and helps you manage you
 - **OCR fallback** for printed ISBN-10 and ISBN-13 text when a barcode cannot be read (macOS)
 - **Bulk bookshelf creation** from an ISBN CSV file
 
+## From back-cover photos to an Obsidian bookshelf
+
+1. Take photos of the back covers of your books with an iPhone or camera.
+2. Select the photo directory from the barcode-scan icon in the Obsidian sidebar.
+3. The plugin detects ISBN barcodes, with OCR fallback for printed ISBN text, and exports a CSV file.
+4. Select that CSV from the library icon to fetch metadata and build the bookshelf.
+
+![An Obsidian bookshelf created from photographed book back covers](docs/images/bookshelf-from-back-cover-photos.png)
+
 ## Installation
 
 ### From the Obsidian Community Plugins (planned)
@@ -38,16 +47,14 @@ Add this repository through the [BRAT](https://github.com/TfTHacker/obsidian42-b
 
 ## Usage
 
-1. Click the **book-open** ribbon icon, or run the command **"Add book by ISBN"**.
-2. Enter an ISBN. Metadata and cover are fetched automatically and a new note is created in your configured bookshelf folder.
+1. Click the **barcode-scan** ribbon icon, or run **"Create ISBN list CSV from back-cover image folder"**, to scan ISBN
+   barcodes from a directory of JPG, PNG, WebP, GIF, BMP, HEIC, or HEIF images.
+2. Click the **library** ribbon icon, or run **"Create bookshelf from ISBN list CSV"**, to fetch metadata and create book
+   notes in bulk. The importer accepts an `isbn` column, or ISBNs in the first
+   column of a headerless CSV.
 3. Use the **book-marked** ribbon icon to edit an existing book note.
 4. Update an existing note's metadata via the **"Update book note"** command.
 5. Replace the cover image via the **"Set cover image manually"** command.
-6. Run **"Create ISBN list CSV from back-cover image folder"** to scan ISBN
-   barcodes from a directory of JPG, PNG, WebP, GIF, BMP, HEIC, or HEIF images.
-7. Run **"Create bookshelf from ISBN list CSV"** to fetch metadata and create book
-   notes in bulk. The importer accepts an `isbn` column, or ISBNs in the first
-   column of a headerless CSV.
 
 ## Requirements
 
@@ -107,8 +114,8 @@ Push a Git tag (matching the `manifest.json` version, **no `v` prefix**) and the
 
 ```sh
 # After bumping manifest.json and package.json
-git tag 1.1.1
-git push origin 1.1.1
+git tag 0.0.2
+git push origin 0.0.2
 ```
 
 ## Plugin identity
@@ -135,6 +142,15 @@ ISBN から書籍メタデータを取得してノートを作成し、本棚と
 - 表紙画像の手動設定（ドラッグ&ドロップ / クリップボード貼り付け対応）
 - 裏表紙画像から ISBN を一括検出して CSV 出力
 - ISBN 一覧 CSV から書籍ノートを一括作成
+
+### 裏表紙の写真から Obsidian の本棚へ
+
+1. iPhoneやカメラで、本の裏表紙をまとめて撮影します。
+2. Obsidianサイドバーのバーコードスキャンアイコンから、写真が入ったフォルダを選択します。
+3. バーコードを検出し、読み取れない場合は印刷されたISBN文字列をOCRで補完して、ISBN一覧CSVを作成します。
+4. ライブラリアイコンから作成したCSVを選択すると、書誌情報と表紙を取得して本棚を一括作成します。
+
+![本の裏表紙写真から作成した Obsidian の本棚](docs/images/bookshelf-from-back-cover-photos.png)
 
 ### 一括登録
 
