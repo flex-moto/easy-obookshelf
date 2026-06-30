@@ -12,6 +12,7 @@ An Obsidian plugin that fetches book metadata from ISBN and helps you manage you
 - **Bulk ISBN extraction** from back-cover images to CSV
 - **OCR fallback** for printed ISBN-10 and ISBN-13 text when a barcode cannot be read (macOS)
 - **Bulk bookshelf creation** from an ISBN CSV file
+- **High-resolution cover refresh** with low-resolution rejection and provider fallback
 
 ## From back-cover photos to an Obsidian bookshelf
 
@@ -55,6 +56,8 @@ Add this repository through the [BRAT](https://github.com/TfTHacker/obsidian42-b
 3. Use the **book-marked** ribbon icon to edit an existing book note.
 4. Update an existing note's metadata via the **"Update book note"** command.
 5. Replace the cover image via the **"Set cover image manually"** command.
+6. Run **"Refresh high-resolution covers for all books"** to replace cached
+   low-resolution covers with the best available image.
 
 ## Requirements
 
@@ -142,6 +145,7 @@ ISBN から書籍メタデータを取得してノートを作成し、本棚と
 - 表紙画像の手動設定（ドラッグ&ドロップ / クリップボード貼り付け対応）
 - 裏表紙画像から ISBN を一括検出して CSV 出力
 - ISBN 一覧 CSV から書籍ノートを一括作成
+- 低解像度画像を除外し、全書籍の高解像度表紙を再取得
 
 ### 裏表紙の写真から Obsidian の本棚へ
 
@@ -162,6 +166,12 @@ ISBN から書籍メタデータを取得してノートを作成し、本棚と
    読み取ります。画像は外部へ送信されません。
 3. 「ISBN 一覧 CSV から本棚を作成」を実行して CSV を選択します。`isbn` 列の有効な
    ISBNを重複除去し、既存の重複ISBN設定に従って書籍ノートを作成します。
+
+### 高解像度表紙の再取得
+
+コマンドパレットから「全書籍の高解像度表紙を再取得」を実行すると、Google Booksの
+最大画像・高倍率画像を優先し、低解像度画像を除外しながら他の提供元へフォールバック
+します。既存の書籍ノートとメモは維持され、表紙キャッシュだけが更新されます。
 
 ### 手動インストール
 

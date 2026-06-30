@@ -28,6 +28,7 @@ export interface BookMetadata {
 	publishDate: string;
 	pages: number;
 	coverUrl: string;
+	coverUrls?: string[];
 	language: string;
 }
 

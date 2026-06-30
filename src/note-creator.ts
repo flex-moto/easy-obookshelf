@@ -124,29 +124,62 @@ async function downloadCoverSafe(
 	metadata: BookMetadata,
 	coversFolder: string,
 	_settings: BookshelfSettings,
+	force = false,
+	showNotice = true,
 ): Promise<string> {
-	if (!metadata.coverUrl) return "";
-	try {
-		return await downloadCover(app, metadata.isbn, metadata.coverUrl, coversFolder);
-	} catch (err) {
-		const message = err instanceof Error ? err.message : String(err);
-		const isPlaceholder = message.includes("プレースホルダー");
-		if (isPlaceholder) {
-			console.info("表紙画像が見つかりませんでした（プレースホルダーのためスキップ）");
+	const coverUrls = metadata.coverUrls?.length ? metadata.coverUrls : [metadata.coverUrl];
+	const errors: string[] = [];
+	const validUrls = coverUrls.filter(Boolean);
+	for (const allowLowResolution of [false, true]) {
+		for (const coverUrl of validUrls) {
+			try {
+				return await downloadCover(
+					app,
+					metadata.isbn,
+					coverUrl,
+					coversFolder,
+					force,
+					allowLowResolution,
+				);
+			} catch (err) {
+				const message = err instanceof Error ? err.message : String(err);
+				errors.push(`${coverUrl}: ${message}`);
+				console.info(`表紙候補をスキップしました: ${message}`, coverUrl);
+			}
+		}
+	}
+	if (errors.length > 0) {
+		console.warn(`表紙画像を取得できませんでした: ISBN ${metadata.isbn}`, errors);
+		if (showNotice) {
 			new Notice(
-				"表紙画像が見つかりませんでした。\n手動フォームの表紙エリアから画像を追加できます。",
-				6000,
-			);
-		} else {
-			console.warn("表紙画像の取得に失敗しました:", err);
-			const expectedPath = `${coversFolder}/${metadata.isbn || sanitizeFileName(metadata.title)}.webp`;
-			new Notice(
-				`表紙画像の取得に失敗しました。\n手動で ${expectedPath} に WebP 画像を配置してください。`,
+				"十分な解像度の表紙画像が見つかりませんでした。\n手動で表紙画像を設定できます。",
 				8000,
 			);
 		}
-		return "";
 	}
+	return "";
+}
+
+export async function refreshBookCover(
+	app: App,
+	file: TFile,
+	metadata: BookMetadata,
+	settings: BookshelfSettings,
+): Promise<boolean> {
+	const coverPath = await downloadCoverSafe(
+		app,
+		metadata,
+		settings.coversFolder,
+		settings,
+		true,
+		false,
+	);
+	if (!coverPath) return false;
+	await app.fileManager.processFrontMatter(file, (fm) => {
+		fm.cover = coverPath;
+	});
+	await updateCoverInBody(app, file, coverPath);
+	return true;
 }
 
 export function findNoteByISBN(app: App, isbn: string): TFile | null {
