@@ -103,7 +103,15 @@ function isJapaneseIsbn(isbn: string): boolean {
 	return isbn.startsWith("978-4") || isbn.startsWith("9784") || isbn.startsWith("4");
 }
 
-async function fetchFromNDL(isbn: string): Promise<BookMetadata | null> {
+function isCollectedWorkTitle(title: string): boolean {
+	return /(全集|選集|作品集|短編集|傑作集|アンソロジー|コレクション|叢書)/.test(title);
+}
+
+interface NdlBookMetadata extends BookMetadata {
+	usesPartInformation: boolean;
+}
+
+async function fetchFromNDL(isbn: string): Promise<NdlBookMetadata | null> {
 	const url = `https://ndlsearch.ndl.go.jp/api/sru?operation=searchRetrieve&recordSchema=dcndl&recordPacking=xml&query=isbn%3D%22${isbn}%22`;
 	try {
 		const response = await requestUrl({ url });
@@ -126,10 +134,12 @@ async function fetchFromNDL(isbn: string): Promise<BookMetadata | null> {
 		};
 		const partInformationCount = xml.getElementsByTagNameNS("*", "partInformation").length;
 		const partTitle = partInformationCount === 1 ? getNestedText("partInformation", "title") : "";
-		const title = partTitle || getTextContent("title", "dcterms");
+		const mainTitle = getTextContent("title", "dcterms");
+		const usePartInformation =
+			Boolean(partTitle) && Boolean(mainTitle) && isCollectedWorkTitle(mainTitle);
+		const title = usePartInformation ? partTitle : mainTitle || partTitle;
 		if (!title) return null;
-		const partAuthor =
-			partInformationCount === 1 ? getNestedText("partInformation", "creator") : "";
+		const partAuthor = usePartInformation ? getNestedText("partInformation", "creator") : "";
 		const rawAuthor =
 			partAuthor || getTextContent("creator", "dc") || getTextContent("creator", "dcterms");
 		const author = rawAuthor.replace(/\s*(著|編|訳|監修|原著)\s*$/, "").trim();
@@ -145,6 +155,7 @@ async function fetchFromNDL(isbn: string): Promise<BookMetadata | null> {
 			pages,
 			coverUrl: "",
 			language: "ja",
+			usesPartInformation: usePartInformation,
 		};
 	} catch (_e) {
 		return null;
@@ -316,8 +327,10 @@ export async function fetchByISBN(isbn: string, googleBooksApiKey?: string): Pro
 	let googleMetadata: BookMetadata | null = null;
 	let openLibraryMetadata: BookMetadata | null = null;
 	let openBdMetadata: BookMetadata | null = null;
+	let ndlMetadata: NdlBookMetadata | null = null;
 	if (isJapaneseIsbn(normalized)) {
-		metadata = await fetchFromNDL(normalized);
+		ndlMetadata = await fetchFromNDL(normalized);
+		metadata = ndlMetadata;
 	}
 	if (!metadata) {
 		googleMetadata = await fetchFromGoogleBooks(normalized, googleBooksApiKey);
@@ -332,6 +345,9 @@ export async function fetchByISBN(isbn: string, googleBooksApiKey?: string): Pro
 	}
 	if (isJapaneseIsbn(normalized)) {
 		openBdMetadata = await fetchFromOpenBD(normalized);
+		if (metadata === ndlMetadata && !ndlMetadata?.usesPartInformation && openBdMetadata?.title) {
+			metadata.title = openBdMetadata.title;
+		}
 	}
 	googleMetadata ??= await fetchFromGoogleBooks(normalized, googleBooksApiKey);
 	openLibraryMetadata ??= await fetchFromOpenLibrary(normalized);
