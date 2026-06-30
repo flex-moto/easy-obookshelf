@@ -157,8 +157,26 @@ interface GoogleBooksVolumeInfo {
 	publisher?: string;
 	publishedDate?: string;
 	pageCount?: number;
-	imageLinks?: { thumbnail?: string; smallThumbnail?: string };
+	imageLinks?: {
+		smallThumbnail?: string;
+		thumbnail?: string;
+		small?: string;
+		medium?: string;
+		large?: string;
+		extraLarge?: string;
+	};
 	language?: string;
+}
+
+function buildGoogleCoverUrls(url: string): string[] {
+	if (!url) return [];
+	const normalized = url.replace(/^http:/, "https:").replace(/&edge=curl/g, "");
+	return [4, 3, 2, 1].map((zoom) => {
+		if (/([?&])zoom=\d+/.test(normalized)) {
+			return normalized.replace(/([?&])zoom=\d+/, `$1zoom=${zoom}`);
+		}
+		return `${normalized}${normalized.includes("?") ? "&" : "?"}zoom=${zoom}`;
+	});
 }
 
 async function fetchFromGoogleBooks(isbn: string, apiKey?: string): Promise<BookMetadata | null> {
@@ -177,7 +195,16 @@ async function fetchFromGoogleBooks(isbn: string, apiKey?: string): Promise<Book
 		const publisher = info.publisher || "";
 		const publishDate = info.publishedDate || "";
 		const pages = info.pageCount || 0;
-		const coverUrl = info.imageLinks?.thumbnail || info.imageLinks?.smallThumbnail || "";
+		const coverUrls = buildGoogleCoverUrls(
+			info.imageLinks?.extraLarge ||
+				info.imageLinks?.large ||
+				info.imageLinks?.medium ||
+				info.imageLinks?.small ||
+				info.imageLinks?.thumbnail ||
+				info.imageLinks?.smallThumbnail ||
+				"",
+		);
+		const coverUrl = coverUrls[0] ?? "";
 		const language = info.language || "en";
 		return {
 			title,
@@ -186,7 +213,8 @@ async function fetchFromGoogleBooks(isbn: string, apiKey?: string): Promise<Book
 			isbn,
 			publishDate,
 			pages,
-			coverUrl: coverUrl.replace(/^http:/, "https:"),
+			coverUrl,
+			coverUrls,
 			language,
 		};
 	} catch (_e) {
@@ -282,53 +310,47 @@ async function fetchFromOpenBD(isbn: string): Promise<BookMetadata | null> {
 	}
 }
 
-function buildCoverUrl(isbn: string, metadata: BookMetadata): string {
-	if (metadata.coverUrl) return metadata.coverUrl;
-	if (isJapaneseIsbn(isbn)) {
-		return `https://thumbnail-s.images.books.or.jp/${isbn}.jpg`;
-	}
-	return `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
-}
-
 export async function fetchByISBN(isbn: string, googleBooksApiKey?: string): Promise<BookMetadata> {
 	const normalized = normalizeIsbn(isbn);
 	let metadata: BookMetadata | null = null;
+	let googleMetadata: BookMetadata | null = null;
+	let openLibraryMetadata: BookMetadata | null = null;
+	let openBdMetadata: BookMetadata | null = null;
 	if (isJapaneseIsbn(normalized)) {
 		metadata = await fetchFromNDL(normalized);
 	}
 	if (!metadata) {
-		metadata = await fetchFromGoogleBooks(normalized, googleBooksApiKey);
+		googleMetadata = await fetchFromGoogleBooks(normalized, googleBooksApiKey);
+		metadata = googleMetadata;
 	}
 	if (!metadata) {
-		metadata = await fetchFromOpenLibrary(normalized);
+		openLibraryMetadata = await fetchFromOpenLibrary(normalized);
+		metadata = openLibraryMetadata;
 	}
 	if (!metadata) {
 		throw new Error(`書籍情報が見つかりませんでした: ISBN ${normalized}`);
 	}
-	if (!metadata.coverUrl) {
-		let forCover: BookMetadata | null = null;
-		if (isJapaneseIsbn(normalized)) {
-			const openBdMetadata = await fetchFromOpenBD(normalized);
-			if (openBdMetadata?.coverUrl) {
-				forCover = openBdMetadata;
-			}
-		}
-		if (!forCover?.coverUrl) {
-			const googleMetadata = await fetchFromGoogleBooks(normalized, googleBooksApiKey);
-			if (googleMetadata?.coverUrl) {
-				forCover = googleMetadata;
-			}
-		}
-		if (!forCover?.coverUrl) {
-			const openLibraryMetadata = await fetchFromOpenLibrary(normalized);
-			if (openLibraryMetadata?.coverUrl) {
-				forCover = openLibraryMetadata;
-			}
-		}
-		if (forCover?.coverUrl) {
-			metadata.coverUrl = forCover.coverUrl;
-		}
+	if (isJapaneseIsbn(normalized)) {
+		openBdMetadata = await fetchFromOpenBD(normalized);
 	}
-	metadata.coverUrl = buildCoverUrl(normalized, metadata);
+	googleMetadata ??= await fetchFromGoogleBooks(normalized, googleBooksApiKey);
+	openLibraryMetadata ??= await fetchFromOpenLibrary(normalized);
+	const fallbackUrl = isJapaneseIsbn(normalized)
+		? `https://thumbnail-s.images.books.or.jp/${normalized}.jpg`
+		: `https://covers.openlibrary.org/b/isbn/${normalized}-L.jpg`;
+	const coverUrls = Array.from(
+		new Set(
+			[
+				...(googleMetadata?.coverUrls ?? []),
+				googleMetadata?.coverUrl,
+				openBdMetadata?.coverUrl,
+				openLibraryMetadata?.coverUrl,
+				metadata.coverUrl,
+				fallbackUrl,
+			].filter((url): url is string => Boolean(url)),
+		),
+	);
+	metadata.coverUrls = coverUrls;
+	metadata.coverUrl = coverUrls[0] ?? "";
 	return metadata;
 }

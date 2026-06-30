@@ -1,7 +1,7 @@
 {
   "id": "isbn-bulk-import-bookshelf-builder",
   "name": "ISBN Bulk Import Bookshelf Builder",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "minAppVersion": "1.9.0",
   "description": "Manage your bookshelf from ISBN. Fetches book metadata from NDL, Google Books, and Open Library, then creates and organizes book notes.",
   "author": "flex-moto",
