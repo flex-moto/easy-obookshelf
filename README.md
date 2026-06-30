@@ -85,8 +85,12 @@ description command sends the synced book title and author to Google Books.
 - **NDL (National Diet Library of Japan)** — `https://ndlsearch.ndl.go.jp` — primary metadata source for Japanese books.
 - **Google Books API** — `https://www.googleapis.com/books/v1` — fallback metadata source.
 - **Open Library** — `https://openlibrary.org` and `https://covers.openlibrary.org` — final fallback for metadata and cover images.
+- **openBD** — `https://api.openbd.jp` — supplemental Japanese book metadata and descriptions.
+- **Books.or.jp** — `https://thumbnail-s.images.books.or.jp` and `https://www.books.or.jp` — fallback cover images for Japanese books.
 
-All requests are issued through Obsidian's `requestUrl` API and are only triggered by an explicit user action (entering an ISBN). No background or telemetry traffic is generated.
+All requests are issued through Obsidian's `requestUrl` API and are only triggered
+by explicit user actions, including ISBN lookup, bulk import, metadata refresh,
+and Kindle description commands. No background or telemetry traffic is generated.
 
 ## File system access
 
@@ -140,6 +144,18 @@ git push origin 0.0.3
 
 This fork uses the plugin ID `isbn-bulk-import-bookshelf-builder`, so it can be
 installed alongside the original `easy-obookshelf` plugin.
+
+## Acknowledgments
+
+This project is a derivative fork of
+[easy-obookshelf](https://github.com/CocoaAI-IT/easy-obookshelf), originally
+created by [CocoaAI-IT](https://github.com/CocoaAI-IT). The original author and
+contributors are credited for their work, and the original MIT copyright notice
+is retained in this repository.
+
+Public permission to submit this fork to the Obsidian Community Plugins directory
+has been [requested from the original author](https://github.com/CocoaAI-IT/easy-obookshelf/issues/8).
+Submission will wait until explicit approval is received.
 
 ## License
 
