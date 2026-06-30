@@ -3,7 +3,10 @@ import { fetchByISBN } from "./book-api";
 import { BookSelectModal } from "./book-select-modal";
 import { createBookshelfFromCsv, exportIsbnsFromBackCovers } from "./bulk-import";
 import { setManualCover } from "./image-cache";
-import { addDescriptionsToKindleHighlights } from "./kindle-highlights";
+import {
+	addDescriptionsToKindleHighlights,
+	refreshAllKindleHighlightDescriptions,
+} from "./kindle-highlights";
 import { updateBookMetadata } from "./note-creator";
 import { BookshelfSettingTab } from "./settings";
 import { type BookshelfSettings, DEFAULT_SETTINGS } from "./types";
@@ -52,6 +55,18 @@ export default class BookshelfPlugin extends Plugin {
 			name: "Kindle Highlightsノートへ概要を一括追加",
 			callback: () => {
 				void addDescriptionsToKindleHighlights(
+					this.app,
+					this.settings.kindleHighlightsFolder,
+					this.settings.googleBooksApiKey || undefined,
+				);
+			},
+		});
+
+		this.addCommand({
+			id: "refresh-all-kindle-highlight-descriptions",
+			name: "Kindle Highlightsノートの概要を全件再取得",
+			callback: () => {
+				void refreshAllKindleHighlightDescriptions(
 					this.app,
 					this.settings.kindleHighlightsFolder,
 					this.settings.googleBooksApiKey || undefined,

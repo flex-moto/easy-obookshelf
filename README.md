@@ -60,7 +60,11 @@ Add this repository through the [BRAT](https://github.com/TfTHacker/obsidian42-b
 6. **"Add descriptions to Kindle Highlights notes"** requires the
    [Kindle Highlights](https://github.com/hadynz/obsidian-kindle-plugin)
    community plugin to be installed. Select its synced notes folder in this
-   plugin's settings before running the command.
+   plugin's settings before running the command. It processes up to 150
+   unprocessed notes per run and skips notes already checked.
+7. Use **"Refresh descriptions for all Kindle Highlights notes"** only when
+   every Kindle description needs to be queried again, since it can issue many
+   API requests.
 
 ## Requirements
 
@@ -187,10 +191,15 @@ ISBN から書籍メタデータを取得してノートを作成し、本棚と
 - 「Kindle Highlightsノートへ概要を一括追加」: 設定画面で選択したフォルダ内のKindleノートを
   タイトル・著者でGoogle Booksと照合し、表紙と既存の見出しの間に概要を追加します。
   Kindleのハイライト、読書目的、アクションプランは維持されます。
+  1回につき未処理のノートを最大150冊処理します。概要を追加済み、または概要なしを
+  確認済みのノートはスキップされ、再実行すると残りの未処理ノートへ進みます。
   この機能を利用するには、コミュニティプラグイン
   [Kindle Highlights](https://github.com/hadynz/obsidian-kindle-plugin)を
   インストールし、設定画面でKindleノートの同期先フォルダを選択する必要があります。
   照合時には、ノート内の書名と著者名がGoogle Booksへ送信されます。
+- 「Kindle Highlightsノートの概要を全件再取得」: 処理済み状態を無視して、選択した
+  フォルダ内の全Kindleノートを再照合します。APIリクエスト数が増えるため、概要の
+  再確認が必要な場合にのみ使用してください。
 
 ### 対象書籍
 
