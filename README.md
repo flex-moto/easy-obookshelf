@@ -153,9 +153,9 @@ created by [CocoaAI-IT](https://github.com/CocoaAI-IT). The original author and
 contributors are credited for their work, and the original MIT copyright notice
 is retained in this repository.
 
-Public permission to submit this fork to the Obsidian Community Plugins directory
-has been [requested from the original author](https://github.com/CocoaAI-IT/easy-obookshelf/issues/8).
-Submission will wait until explicit approval is received.
+The original author has
+[explicitly approved](https://github.com/CocoaAI-IT/easy-obookshelf/issues/8#issuecomment-4849988716)
+submitting this fork to the Obsidian Community Plugins directory.
 
 ## License
 
