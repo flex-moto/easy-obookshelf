@@ -69,6 +69,7 @@ Add this repository through the [BRAT](https://github.com/TfTHacker/obsidian42-b
 ## Requirements
 
 - Desktop only (uses Electron file dialog and local filesystem for cover caching).
+- Plugin loading has been verified on macOS 14.4.1 (Build 23E224).
 - The Kindle description command requires the Kindle Highlights community plugin
   and notes containing its `Kindle` tag, `kindle-title`, and `kindle-author`
   properties.
@@ -226,6 +227,10 @@ ISBN から書籍メタデータを取得してノートを作成し、本棚と
 ### 手動インストール
 
 [Releases](../../releases) から `main.js` / `manifest.json` / `styles.css` をダウンロードし、`<Vault>/.obsidian/plugins/isbn-bulk-import-bookshelf-builder/` に配置してください。
+
+### 動作確認環境
+
+macOS 14.4.1（Build 23E224）でプラグインを読み込めることを確認しています。
 
 ### v1.0.x からの移行
 
