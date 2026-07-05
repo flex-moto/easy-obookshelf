@@ -1,6 +1,6 @@
 {
 	"name": "isbn-bulk-import-bookshelf-builder",
-	"version": "0.0.3",
+	"version": "0.0.4",
 	"description": "Manage your bookshelf from ISBN. Fetches book metadata from NDL, Google Books, and Open Library, then creates and organizes book notes.",
 	"private": true,
 	"main": "main.js",
@@ -12,10 +12,11 @@
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc --noEmit && node esbuild.config.mjs production",
 		"typecheck": "tsc --noEmit",
-		"lint": "biome lint ./src",
+		"lint": "eslint .",
+		"lint:biome": "biome lint ./src",
 		"format": "biome format --write ./src",
 		"check": "biome check --write ./src",
-		"check:ci": "biome check ./src"
+		"check:ci": "biome check ./src && eslint ."
 	},
 	"keywords": [
 		"obsidian",
@@ -28,10 +29,16 @@
 	"license": "MIT",
 	"devDependencies": {
 		"@biomejs/biome": "^1.9.4",
+		"@eslint/js": "^9.39.4",
 		"@types/node": "^22.10.0",
 		"esbuild": "^0.24.0",
+		"eslint": "^9.39.4",
+		"eslint-plugin-obsidianmd": "^0.4.0",
+		"globals": "^17.6.0",
+		"jiti": "^2.6.1",
 		"obsidian": "^1.7.2",
 		"tslib": "^2.8.1",
-		"typescript": "^5.7.2"
+		"typescript": "^5.7.2",
+		"typescript-eslint": "^8.59.1"
 	}
 }

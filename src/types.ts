@@ -2,6 +2,10 @@ export type DuplicateIsbnAction = "open" | "overwrite" | "create-new";
 
 export type BookStatus = "to-read" | "reading" | "completed" | "abandoned";
 
+export function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null;
+}
+
 export interface BookshelfSettings {
 	booksFolder: string;
 	coversFolder: string;
@@ -43,7 +47,7 @@ export interface BookNoteFrontmatter {
 	publishDate?: string;
 	pages?: number;
 	cover?: string;
-	status?: BookStatus | string;
+	status?: BookStatus;
 	progress?: number;
 	startDate?: string;
 	endDate?: string;

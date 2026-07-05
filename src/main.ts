@@ -9,7 +9,7 @@ import {
 } from "./kindle-highlights";
 import { updateBookMetadata } from "./note-creator";
 import { BookshelfSettingTab } from "./settings";
-import { type BookshelfSettings, DEFAULT_SETTINGS } from "./types";
+import { type BookshelfSettings, DEFAULT_SETTINGS, isRecord } from "./types";
 
 export default class BookshelfPlugin extends Plugin {
 	settings: BookshelfSettings = DEFAULT_SETTINGS;
@@ -34,9 +34,12 @@ export default class BookshelfPlugin extends Plugin {
 				const file = this.app.workspace.getActiveFile();
 				if (!file) return false;
 				const cache = this.app.metadataCache.getFileCache(file);
-				if (!cache?.frontmatter?.isbn) return false;
+				const properties: unknown = cache?.frontmatter;
+				const isbn =
+					isRecord(properties) && typeof properties.isbn === "string" ? properties.isbn : "";
+				if (!isbn) return false;
 				if (!checking) {
-					this.handleSetManualCover(file, cache.frontmatter.isbn);
+					void this.handleSetManualCover(file, isbn);
 				}
 				return true;
 			},
@@ -96,7 +99,7 @@ export default class BookshelfPlugin extends Plugin {
 	private refreshBookshelfViewStyles(): void {
 		const bookshelfPath = `${this.settings.booksFolder}/本棚.base`;
 		for (const leaf of this.app.workspace.getLeavesOfType("bases")) {
-			const state = leaf.view.getState();
+			const state = leaf.view.getState() as unknown as { file?: unknown };
 			leaf.view.containerEl.toggleClass("isbn-bulk-bookshelf-view", state.file === bookshelfPath);
 		}
 	}
@@ -106,7 +109,8 @@ export default class BookshelfPlugin extends Plugin {
 			const vaultPath = await setManualCover(this.app, isbn, this.settings.coversFolder);
 			if (!vaultPath) return;
 			await this.app.fileManager.processFrontMatter(file, (fm) => {
-				fm.cover = vaultPath;
+				const properties = fm as unknown as Record<string, unknown>;
+				properties.cover = vaultPath;
 			});
 			new Notice("表紙画像を設定しました。");
 		} catch (err) {
@@ -117,8 +121,9 @@ export default class BookshelfPlugin extends Plugin {
 
 	private async handleRefreshAllMetadata(): Promise<void> {
 		const books = this.app.vault.getMarkdownFiles().flatMap((file) => {
-			const frontmatter = this.app.metadataCache.getFileCache(file)?.frontmatter;
-			const isbn = typeof frontmatter?.isbn === "string" ? frontmatter.isbn : "";
+			const frontmatter: unknown = this.app.metadataCache.getFileCache(file)?.frontmatter;
+			const isbn =
+				isRecord(frontmatter) && typeof frontmatter.isbn === "string" ? frontmatter.isbn : "";
 			return isbn ? [{ file, isbn }] : [];
 		});
 		if (books.length === 0) {
@@ -212,7 +217,8 @@ views:
 	}
 
 	async loadSettings(): Promise<void> {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		const savedSettings = (await this.loadData()) as unknown as Partial<BookshelfSettings> | null;
+		this.settings = { ...DEFAULT_SETTINGS, ...(savedSettings ?? {}) };
 	}
 
 	async saveSettings(): Promise<void> {

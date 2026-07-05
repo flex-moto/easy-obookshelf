@@ -1,4 +1,5 @@
 import { type App, Notice, requestUrl } from "obsidian";
+import { getElectronDialog, getWindowRequire } from "./desktop-api";
 
 const MIN_COVER_WIDTH = 300;
 const MIN_COVER_HEIGHT = 400;
@@ -55,7 +56,7 @@ async function urlToWebpArrayBuffer(
 	if (imageBitmap.width <= 1 || imageBitmap.height <= 1) {
 		throw new Error("プレースホルダー画像のため保存をスキップしました");
 	}
-	const canvas = document.createElement("canvas");
+	const canvas = createEl("canvas");
 	canvas.width = imageBitmap.width;
 	canvas.height = imageBitmap.height;
 	const ctx = canvas.getContext("2d");
@@ -120,7 +121,7 @@ export async function saveCoverFromFileObject(
 		await app.vault.createFolder(coversFolder);
 	}
 	const imageBitmap = await createImageBitmap(file);
-	const canvas = document.createElement("canvas");
+	const canvas = createEl("canvas");
 	canvas.width = imageBitmap.width;
 	canvas.height = imageBitmap.height;
 	const ctx = canvas.getContext("2d");
@@ -148,14 +149,16 @@ export async function setManualCover(
 	isbn: string,
 	coversFolder: string,
 ): Promise<string | null> {
-	// biome-ignore lint/suspicious/noExplicitAny: Electron APIs are accessed via window.require in Obsidian desktop.
-	const windowRequire = (window as any).require as ((mod: string) => any) | undefined;
-	const electron = windowRequire?.("electron");
-	if (!electron) {
+	const windowRequire = getWindowRequire();
+	if (!windowRequire) {
 		new Notice("Electron API が利用できません。デスクトップ版 Obsidian で実行してください。");
 		return null;
 	}
-	const { dialog } = electron.remote || electron;
+	const dialog = getElectronDialog(windowRequire);
+	if (!dialog) {
+		new Notice("Electronのファイル選択APIが利用できません。");
+		return null;
+	}
 	const result = await dialog.showOpenDialog({
 		title: "表紙画像を選択",
 		filters: [{ name: "WebP 画像", extensions: ["webp", "jpg", "jpeg", "png"] }],
@@ -169,19 +172,23 @@ export async function setManualCover(
 	if (!(await app.vault.adapter.exists(coversFolder))) {
 		await app.vault.createFolder(coversFolder);
 	}
-	const fs = windowRequire?.("fs");
-	if (!fs) {
+	const fs = windowRequire("fs") as { readFileSync(path: string): Uint8Array };
+	if (!fs?.readFileSync) {
 		new Notice("ファイルシステム API が利用できません。");
 		return null;
 	}
 	const sourceBuffer = fs.readFileSync(sourcePath);
+	const sourceArrayBuffer = sourceBuffer.buffer.slice(
+		sourceBuffer.byteOffset,
+		sourceBuffer.byteOffset + sourceBuffer.byteLength,
+	) as ArrayBuffer;
 	const ext = sourcePath.split(".").pop()?.toLowerCase();
 	if (ext === "webp") {
-		await app.vault.adapter.writeBinary(vaultPath, sourceBuffer.buffer);
+		await app.vault.adapter.writeBinary(vaultPath, sourceArrayBuffer);
 	} else {
-		const blob = new Blob([sourceBuffer], { type: "image/*" });
+		const blob = new Blob([sourceArrayBuffer], { type: "image/*" });
 		const imageBitmap = await createImageBitmap(blob);
-		const canvas = document.createElement("canvas");
+		const canvas = createEl("canvas");
 		canvas.width = imageBitmap.width;
 		canvas.height = imageBitmap.height;
 		const ctx = canvas.getContext("2d");

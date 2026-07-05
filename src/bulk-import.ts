@@ -1,5 +1,6 @@
 import { type App, Notice } from "obsidian";
 import { fetchByISBN } from "./book-api";
+import { getElectronDialog, getWindowRequire } from "./desktop-api";
 import { createBookNote } from "./note-creator";
 import type { BookshelfSettings } from "./types";
 
@@ -100,16 +101,14 @@ int main(int argc, const char *argv[]) {
 `;
 
 function getDesktopApis(): DesktopApis | null {
-	// biome-ignore lint/suspicious/noExplicitAny: Obsidian desktop exposes Node/Electron through window.require.
-	const windowRequire = (window as any).require as ((module: string) => any) | undefined;
+	const windowRequire = getWindowRequire();
 	if (!windowRequire) return null;
-	const electron = windowRequire("electron");
-	const fs = windowRequire("fs");
-	const path = windowRequire("path");
-	const childProcess = windowRequire("child_process");
-	const os = windowRequire("os");
-	const crypto = windowRequire("crypto");
-	const dialog = (electron.remote || electron).dialog;
+	const dialog = getElectronDialog(windowRequire);
+	const fs = windowRequire("fs") as DesktopApis["fs"];
+	const path = windowRequire("path") as DesktopApis["path"];
+	const childProcess = windowRequire("child_process") as DesktopApis["childProcess"];
+	const os = windowRequire("os") as DesktopApis["os"];
+	const crypto = windowRequire("crypto") as DesktopApis["crypto"];
 	return dialog && fs && path && childProcess && os && crypto
 		? { dialog, fs, path, childProcess, os, crypto }
 		: null;
