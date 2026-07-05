@@ -277,18 +277,21 @@ export class EditBookModal extends Modal {
 								);
 							}
 							await this.app.fileManager.processFrontMatter(this.file, (front) => {
-								front.title = titleValue;
-								front.author = authorValue;
-								front.publisher = publisherValue;
-								front.publishDate = publishDateValue;
-								front.pages = Number.parseInt(pagesValue) || front.pages;
-								front.language = languageValue;
-								front.status = statusValue;
-								front.progress = progressValue;
-								front.rating = ratingValue;
-								front.startDate = startDateValue;
-								front.endDate = endDateValue;
-								if (newCoverPath) front.cover = newCoverPath;
+								const properties = front as unknown as Record<string, unknown>;
+								properties.title = titleValue;
+								properties.author = authorValue;
+								properties.publisher = publisherValue;
+								properties.publishDate = publishDateValue;
+								properties.pages =
+									Number.parseInt(pagesValue) ||
+									(typeof properties.pages === "number" ? properties.pages : 0);
+								properties.language = languageValue;
+								properties.status = statusValue;
+								properties.progress = progressValue;
+								properties.rating = ratingValue;
+								properties.startDate = startDateValue;
+								properties.endDate = endDateValue;
+								if (newCoverPath) properties.cover = newCoverPath;
 							});
 							new Notice("書籍ノートを更新しました");
 							this.close();

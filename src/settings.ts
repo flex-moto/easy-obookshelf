@@ -3,6 +3,7 @@ import { testGoogleBooksApiKey } from "./book-api";
 import type BookshelfPlugin from "./main";
 import type { BookStatus, DuplicateIsbnAction } from "./types";
 
+// The declarative settings API requires Obsidian 1.13; this plugin supports minAppVersion 1.9.0.
 export class BookshelfSettingTab extends PluginSettingTab {
 	plugin: BookshelfPlugin;
 
@@ -14,7 +15,7 @@ export class BookshelfSettingTab extends PluginSettingTab {
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
-		containerEl.createEl("h2", { text: "ISBN Bulk Import Bookshelf Builder 設定" });
+		new Setting(containerEl).setName("全般").setHeading();
 
 		new Setting(containerEl)
 			.setName("書籍ノートの保存フォルダ")

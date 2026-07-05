@@ -137,8 +137,8 @@ Push a Git tag (matching the `manifest.json` version, **no `v` prefix**) and the
 
 ```sh
 # After bumping manifest.json and package.json
-git tag 0.0.3
-git push origin 0.0.3
+git tag 0.0.4
+git push origin 0.0.4
 ```
 
 ## Plugin identity

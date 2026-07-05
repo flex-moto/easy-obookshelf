@@ -29,6 +29,10 @@ interface GoogleBooksApiErrorResponse {
 	};
 }
 
+interface GoogleBooksResponse {
+	items?: Array<{ volumeInfo?: GoogleBooksVolumeInfo }>;
+}
+
 export async function testGoogleBooksApiKey(apiKey: string): Promise<GoogleBooksApiKeyTestResult> {
 	const key = apiKey.trim();
 	if (!key) {
@@ -40,13 +44,14 @@ export async function testGoogleBooksApiKey(apiKey: string): Promise<GoogleBooks
 	const url = `https://www.googleapis.com/books/v1/volumes?q=isbn:9784797387247&maxResults=1&key=${encodeURIComponent(key)}`;
 	try {
 		const response = await requestUrl({ url, throw: false });
-		if (response.status === 200 && Array.isArray(response.json?.items)) {
+		const responseData = response.json as unknown as GoogleBooksResponse;
+		if (response.status === 200 && Array.isArray(responseData.items)) {
 			return {
 				status: "success",
 				message: "APIキーは利用可能です。Google Booksから書籍情報を取得できました。",
 			};
 		}
-		const data = response.json as GoogleBooksApiErrorResponse | undefined;
+		const data = response.json as unknown as GoogleBooksApiErrorResponse | undefined;
 		const error = data?.error;
 		const reasons = [
 			...(error?.errors?.map((item) => item.reason ?? "") ?? []),
@@ -96,7 +101,7 @@ export async function testGoogleBooksApiKey(apiKey: string): Promise<GoogleBooks
 }
 
 function normalizeIsbn(isbn: string): string {
-	return isbn.replace(/[\s\-]/g, "");
+	return isbn.replace(/[\s-]/g, "");
 }
 
 function isJapaneseIsbn(isbn: string): boolean {
@@ -157,7 +162,7 @@ async function fetchFromNDL(isbn: string): Promise<NdlBookMetadata | null> {
 			language: "ja",
 			usesPartInformation: usePartInformation,
 		};
-	} catch (_e) {
+	} catch {
 		return null;
 	}
 }
@@ -184,7 +189,7 @@ function normalizeForMatch(value: string): string {
 	return value
 		.normalize("NFKC")
 		.toLowerCase()
-		.replace(/[\s　:：・,，.。!！?？'"“”‘’()[\]{}「」『』【】〈〉《》\-—–]/g, "");
+		.replace(/[\s\u3000:：・,，.。!！?？'"“”‘’()[\]{}「」『』【】〈〉《》—–-]/g, "");
 }
 
 function scoreGoogleBookMatch(info: GoogleBooksVolumeInfo, title: string, author: string): number {
@@ -228,9 +233,10 @@ async function searchGoogleBooksByTitle(
 	let url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=10`;
 	if (apiKey) url += `&key=${encodeURIComponent(apiKey)}`;
 	const response = await requestUrl({ url });
-	if (response.status !== 200 || !Array.isArray(response.json?.items)) return [];
-	return response.json.items
-		.map((item: { volumeInfo?: GoogleBooksVolumeInfo }) => item.volumeInfo)
+	const data = response.json as unknown as GoogleBooksResponse;
+	if (response.status !== 200 || !Array.isArray(data.items)) return [];
+	return data.items
+		.map((item) => item.volumeInfo)
 		.filter((info: GoogleBooksVolumeInfo | undefined): info is GoogleBooksVolumeInfo =>
 			Boolean(info?.title && info.description),
 		);
@@ -287,7 +293,7 @@ export async function fetchDescriptionByTitle(
 			};
 		}
 		return null;
-	} catch (_error) {
+	} catch {
 		return null;
 	}
 }
@@ -309,9 +315,9 @@ async function fetchFromGoogleBooks(isbn: string, apiKey?: string): Promise<Book
 	try {
 		const response = await requestUrl({ url });
 		if (response.status !== 200) return null;
-		const data = response.json;
+		const data = response.json as unknown as GoogleBooksResponse;
 		if (!data.items || data.items.length === 0) return null;
-		const info: GoogleBooksVolumeInfo | undefined = data.items[0].volumeInfo;
+		const info = data.items[0]?.volumeInfo;
 		if (!info) return null;
 		const title = info.title || "";
 		if (!title) return null;
@@ -342,7 +348,7 @@ async function fetchFromGoogleBooks(isbn: string, apiKey?: string): Promise<Book
 			language,
 			description: normalizeDescription(info.description),
 		};
-	} catch (_e) {
+	} catch {
 		return null;
 	}
 }
@@ -364,8 +370,8 @@ async function fetchFromOpenLibrary(isbn: string): Promise<BookMetadata | null> 
 	try {
 		const response = await requestUrl({ url });
 		if (response.status !== 200) return null;
-		const data = response.json;
-		const book: OpenLibraryBook | undefined = data[`ISBN:${isbn}`];
+		const data = response.json as unknown as Record<string, OpenLibraryBook | undefined>;
+		const book = data[`ISBN:${isbn}`];
 		if (!book) return null;
 		const title = book.title || "";
 		if (!title) return null;
@@ -387,7 +393,7 @@ async function fetchFromOpenLibrary(isbn: string): Promise<BookMetadata | null> 
 			language,
 			description: normalizeDescription(book.notes || book.excerpts?.[0]?.text),
 		};
-	} catch (_e) {
+	} catch {
 		return null;
 	}
 }
@@ -455,7 +461,7 @@ async function fetchFromOpenBD(isbn: string): Promise<BookMetadata | null> {
 			language: "ja",
 			description: normalizeDescription(descriptions.find((item) => item.Text)?.Text),
 		};
-	} catch (_e) {
+	} catch {
 		return null;
 	}
 }

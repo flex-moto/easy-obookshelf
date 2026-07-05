@@ -10,7 +10,7 @@ function normalizeIsbn(input: string): string {
 		.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0))
 		.replace(/Ｘ/g, "X")
 		.replace(/ｘ/g, "x");
-	const stripped = halfWidth.replace(/\s|​|‌|‍|﻿|-/g, "");
+	const stripped = halfWidth.replace(/[\s-]/g, "").replace(/\u200B|\u200C|\u200D|\uFEFF/g, "");
 	if (stripped.length === 10 && /^\d{9}[\dXx]$/.test(stripped)) {
 		return convertIsbn10To13(stripped);
 	}
@@ -64,7 +64,7 @@ export class ISBNModal extends Modal {
 				text.inputEl.addClass("bookshelf-input-isbn");
 				this.inputEl = text.inputEl;
 				text.inputEl.addEventListener("keydown", (e) => {
-					if (e.key === "Enter") this.handleSearch();
+					if (e.key === "Enter") void this.handleSearch();
 				});
 			});
 
@@ -84,7 +84,7 @@ export class ISBNModal extends Modal {
 			});
 
 		this.statusEl = contentEl.createDiv();
-		setTimeout(() => this.inputEl?.focus(), 50);
+		window.setTimeout(() => this.inputEl?.focus(), 50);
 	}
 
 	private showManualForm(
@@ -129,7 +129,7 @@ export class ISBNModal extends Modal {
 		};
 
 		if (prefill?.autoCoverUrl) {
-			(async () => {
+			void (async () => {
 				try {
 					const response = await requestUrl({ url: prefill.autoCoverUrl as string });
 					if (response.status !== 200) return;
@@ -359,7 +359,7 @@ export class ISBNModal extends Modal {
 		try {
 			const metadata = await fetchByISBN(isbn, this.settings.googleBooksApiKey || undefined);
 			this.showManualForm(isbn, { metadata, autoCoverUrl: metadata.coverUrl });
-		} catch (_e) {
+		} catch {
 			this.showManualForm(isbn);
 			new Notice("書籍情報が見つかりませんでした。手動で入力してください。");
 		} finally {

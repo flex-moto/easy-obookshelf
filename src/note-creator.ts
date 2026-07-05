@@ -1,6 +1,6 @@
 import { type App, Notice, type TFile } from "obsidian";
 import { downloadCover } from "./image-cache";
-import type { BookMetadata, BookshelfSettings } from "./types";
+import { type BookMetadata, type BookshelfSettings, isRecord } from "./types";
 
 function sanitizeFileName(name: string): string {
 	return name.replace(/[\\/:*?"<>|]/g, "_").trim();
@@ -172,7 +172,6 @@ async function downloadCoverSafe(
 			} catch (err) {
 				const message = err instanceof Error ? err.message : String(err);
 				errors.push(`${coverUrl}: ${message}`);
-				console.info(`表紙候補をスキップしました: ${message}`, coverUrl);
 			}
 		}
 	}
@@ -204,7 +203,8 @@ export async function refreshBookCover(
 	);
 	if (!coverPath) return false;
 	await app.fileManager.processFrontMatter(file, (fm) => {
-		fm.cover = coverPath;
+		const properties = fm as unknown as Record<string, unknown>;
+		properties.cover = coverPath;
 	});
 	await updateCoverInBody(app, file, coverPath);
 	return true;
@@ -214,7 +214,8 @@ export function findNoteByISBN(app: App, isbn: string): TFile | null {
 	const files = app.vault.getMarkdownFiles();
 	for (const file of files) {
 		const cache = app.metadataCache.getFileCache(file);
-		if (cache?.frontmatter?.isbn === isbn) {
+		const properties: unknown = cache?.frontmatter;
+		if (isRecord(properties) && properties.isbn === isbn) {
 			return file;
 		}
 	}
@@ -227,13 +228,14 @@ export async function updateBookMetadata(
 	metadata: BookMetadata,
 ): Promise<void> {
 	await app.fileManager.processFrontMatter(file, (fm) => {
-		fm.title = metadata.title;
-		fm.author = metadata.author;
-		fm.publisher = metadata.publisher;
-		fm.isbn = metadata.isbn;
-		fm.publishDate = metadata.publishDate;
-		fm.pages = metadata.pages;
-		fm.language = metadata.language;
+		const properties = fm as unknown as Record<string, unknown>;
+		properties.title = metadata.title;
+		properties.author = metadata.author;
+		properties.publisher = metadata.publisher;
+		properties.isbn = metadata.isbn;
+		properties.publishDate = metadata.publishDate;
+		properties.pages = metadata.pages;
+		properties.language = metadata.language;
 	});
 	await updateDescriptionInBody(app, file, metadata.description);
 }
@@ -249,7 +251,8 @@ export async function updateBookNote(
 		return;
 	}
 	const cache = app.metadataCache.getFileCache(file);
-	if (!cache?.frontmatter?.isbn) {
+	const properties: unknown = cache?.frontmatter;
+	if (!isRecord(properties) || typeof properties.isbn !== "string" || !properties.isbn) {
 		new Notice("このノートには ISBN フィールドがありません。");
 		return;
 	}
